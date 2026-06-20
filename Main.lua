@@ -1,51 +1,47 @@
 --[[
 	DISCLAIMER:
 
-	I am not affiliated with Character.AI or anything like that. 
-	It’s just a project I did for fun. 
-	I only use the API that I created using Web Scraping, 
-	which is a technique to extract data from websites. 
-	Therefore, this script is not endorsed or supported by the Character.AI team.
+	I am not affiliated with Character.AI.
+	This is just a project I made for fun.
 
-	Official Character.AI site: https://character.ai/
+	This script uses an API made through web scraping,
+	which is a technique used to extract data from websites.
+
+	This script is not endorsed, supported, or made by
+	the official Character.AI team.
+
+	Official Character.AI site:
+	https://character.ai/
 ]]
 
-getfenv().YourToken = ''; --Here you paste your token
+getfenv().YourToken = ""; -- Paste your Character.AI token here
 getfenv().WaitAnswer = true;
 
 --[[
 	IMPORTANT:
 
-	- If "YourToken" isn't set, the script logs in as a guest.
+	- If "YourToken" is empty, the script logs in as a guest.
 
-	    - Why you should get a token:
-          - Guest can only send like 5 messages to a Character.
-          - Guests cannot search for characters.
-	
-	    - With Character.AI, you can send as many messages as you want for free. 
-        - The token is valid forever, so you only need to get it once.
+	- Why you should use a token:
+		- Guests can only send a limited amount of messages.
+		- Guests cannot search for characters.
+		- With a token, you can use Character.AI properly.
 
-	- Setting "WaitAnswer" to true makes the script wait for the bot's 
-	  response before generating another one. This can help prevent flooding 
-	  the chat with messages, but it also means the script won't be able 
-	  to read incoming messages while waiting for a response.
+	- Setting "WaitAnswer" to true makes the script wait for the bot's
+	  response before sending another message.
 
-    - Setting "WaitAnswer" to false makes the script respond quickly 
-	  without waiting for the bot's response. This can be useful for 
-	  certain scenarios, but it may flood the chat with messages.
+	- Setting "WaitAnswer" to false makes the script respond faster,
+	  but it may flood the chat with messages.
 ]]
 
 --[[
-	to obtain your Character.AI token, 
-	you can find a series of steps at the following 
-	link: https://github.com/ElWapoteDev/CharacterAI-Luau#how-to-get-my-characterai-token
+	HOW TO GET YOUR CHARACTER.AI TOKEN:
 
+	You can find the steps here:
+	https://github.com/LumiaDevJacob/CharacterAI#how-to-get-my-characterai-token
 
-
-	If you are a developer or have knowledge in Luau,
-	you can check out the GitHub repository of the module for Character.AI 
-	to create your own implementations for Roblox. 
-	Here is the link to the repository on GitHub: https://github.com/ElWapoteDev/CharacterAI-Luau
+	GitHub Repository:
+	https://github.com/LumiaDevJacob/CharacterAI
 ]]
 
-loadstring(game:HttpGet('https://raw.githubusercontent.com/ElWapoteDev/CharacterAI-Luau/main/Examples/CharHub.lua', true))();
+loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Examples/CharHub.lua", true))();
