@@ -1,3 +1,4 @@
+warn("[Lumia] Module hotfix loaded")
 local HttpService = game:GetService("HttpService")
 
 local requestFunction =

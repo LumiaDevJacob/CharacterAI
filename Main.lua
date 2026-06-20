@@ -1,3 +1,4 @@
+warn("[Lumia] Main hotfix loaded")
 getfenv().YourToken = ""
 getfenv().WaitAnswer = true
 getfenv().LumiaStatsEnabled = true

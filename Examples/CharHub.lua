@@ -1,3 +1,4 @@
+warn("[Lumia] CharHub hotfix loaded")
 local TOKEN = getfenv().YourToken
 repeat wait() until game:IsLoaded()
 local CharacterAI = loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua?v=" .. tostring(os.time()), true))()
