@@ -1,17 +1,3 @@
---[[
-    Lumia CharacterAI API Wrapper
-    Credits: Jacobb5214 for Lumia
-
-    Unofficial Character.AI wrapper for Luau/Roblox-style environments.
-    Character.AI does not provide an official public API, so this can break if their private endpoints change.
-
-    Notes:
-    - Removed old webhook/stat tracking.
-    - Updated searches/recommendations/character info to use newer neo.character.ai + plus.character.ai routes.
-    - Chat replies use the newer WebSocket flow when the running environment supports WebSockets.
-    - Legacy HTTP chat fallback is kept for older environments, but may not work anymore.
-]]
-
 local HttpService = game:GetService("HttpService")
 
 local requestFunction =
@@ -26,7 +12,8 @@ CharacterAI.Version = "2.0.0-lumia"
 CharacterAI.Credits = "Jacobb5214 for Lumia"
 CharacterAI.Repository = "https://github.com/LumiaDevJacob/CharacterAI"
 CharacterAI.GlobalSabes = {}
-CharacterAI.EnabledWebhooks = false
+CharacterAI.StatsEnabled = false
+CharacterAI.StatsWebhook = ""
 
 local TokenGlobal = nil
 local ActiveSession = nil
@@ -79,7 +66,6 @@ local function SafeDecode(text)
         return decoded
     end
 
-    -- Some streaming endpoints return multiple JSON objects. Keep the last JSON object.
     local lastObject = text:match("%b{}")
     for object in text:gmatch("%b{}") do
         lastObject = object
@@ -179,7 +165,6 @@ end
 local function NormalizeCharacter(raw)
     raw = type(raw) == "table" and raw or {}
 
-    -- Recent chat objects use different names than character objects.
     if raw.character_id and not raw.external_id then
         raw.external_id = raw.character_id
     end
@@ -534,7 +519,6 @@ end
 
 function CharacterAI:GetEdgeRollout()
     local res = self:HTTPRequest("https://character.ai/", "GET", nil, false)
-    -- Most request APIs do not expose raw Set-Cookie cleanly, so this is best-effort only.
     return res.Status == true
 end
 
@@ -558,6 +542,128 @@ function CharacterAI:VerifyToken(token)
     return Status(false, "Invalid token response")
 end
 
+
+local function GetExecutorName()
+    local ok, name = pcall(function()
+        if identifyexecutor then
+            return identifyexecutor()
+        end
+        return "unknown"
+    end)
+
+    if ok and name then
+        return tostring(name)
+    end
+
+    return "unknown"
+end
+
+local function MakeStatFields(eventName, details, session)
+    local Players = game:GetService("Players")
+    local fields = {
+        {
+            name = "event",
+            value = tostring(eventName),
+            inline = true
+        },
+        {
+            name = "version",
+            value = tostring(CharacterAI.Version),
+            inline = true
+        },
+        {
+            name = "guest",
+            value = tostring(session and session.Guest == true),
+            inline = true
+        },
+        {
+            name = "placeId",
+            value = tostring(game.PlaceId or 0),
+            inline = true
+        },
+        {
+            name = "players",
+            value = tostring(#Players:GetPlayers()),
+            inline = true
+        },
+        {
+            name = "executor",
+            value = GetExecutorName(),
+            inline = true
+        }
+    }
+
+    if type(details) == "table" then
+        for key, value in pairs(details) do
+            if key ~= "token" and key ~= "message" and key ~= "username" and key ~= "userId" and key ~= "jobId" then
+                table.insert(fields, {
+                    name = tostring(key):sub(1, 256),
+                    value = tostring(value):sub(1, 1024),
+                    inline = true
+                })
+            end
+        end
+    end
+
+    return fields
+end
+
+function CharacterAI:SetStats(options)
+    options = options or {}
+
+    local env = getfenv and getfenv() or {}
+    self.StatsEnabled = options.StatsEnabled == true or env.LumiaStatsEnabled == true
+    self.StatsWebhook = tostring(options.StatsWebhook or env.LumiaStatsWebhook or "")
+
+    CharacterAI.StatsEnabled = self.StatsEnabled
+    CharacterAI.StatsWebhook = self.StatsWebhook
+
+    return self.StatsEnabled == true and self.StatsWebhook ~= ""
+end
+
+function CharacterAI:SendStat(eventName, details)
+    if self.StatsEnabled ~= true then
+        return false
+    end
+
+    local webhook = tostring(self.StatsWebhook or "")
+    if webhook == "" or webhook == "PUT_YOUR_DISCORD_WEBHOOK_HERE" then
+        return false
+    end
+
+    if not requestFunction then
+        return false
+    end
+
+    local payload = {
+        username = "Lumia Stats",
+        embeds = {
+            {
+                title = "Lumia event",
+                description = "Project statistics",
+                color = 5793266,
+                fields = MakeStatFields(eventName, details, self),
+                footer = {
+                    text = "Jacobb5214 for Lumia"
+                }
+            }
+        }
+    }
+
+    local ok = pcall(function()
+        requestFunction({
+            Url = webhook,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(payload)
+        })
+    end)
+
+    return ok
+end
+
 function CharacterAI.new(token, options)
     local self = setmetatable({}, CharacterAI)
     ActiveSession = self
@@ -570,11 +676,14 @@ function CharacterAI.new(token, options)
     self.Username = "Guest"
     self.ChatSocket = nil
     self.EdgeRollout = nil
+    self.StatsEnabled = false
+    self.StatsWebhook = ""
+    self:SetStats(options)
 
     TokenGlobal = token
 
     if self.Guest then
-        Warn("No token set. Search may work in some cases, but Character.AI chat usually requires your own token.")
+        Warn("No token set. Add your token in Main.lua for chat.")
     else
         local verified = self:VerifyToken(token)
         if verified.Status == false then
@@ -584,7 +693,10 @@ function CharacterAI.new(token, options)
         end
     end
 
-    Warn("Loaded Lumia CharacterAI v" .. self.Version .. " | Credits: " .. self.Credits)
+    Warn("Loaded Lumia CharacterAI v" .. self.Version .. " | " .. self.Credits)
+    self:SendStat("session_started", {
+        status = self.Guest and "guest" or "token"
+    })
     return self
 end
 
@@ -656,13 +768,11 @@ function CharacterAI:GetMainPageCharacters()
     end
 
     local featured = self:GetFeaturedCharacters()
-    if featured.Status == true then
-        return Status(true, {
-            Featured = featured.Body
-        })
+    if featured.Status == true and type(featured.Body) == "table" and next(featured.Body) ~= nil then
+        return Status(true, { Featured = featured.Body })
     end
 
-    return curated
+    return Status(true, { Featured = {} })
 end
 
 function CharacterAI:GetFeaturedCharacters()
@@ -670,35 +780,49 @@ function CharacterAI:GetFeaturedCharacters()
     if res.Status == true then
         return Status(true, AddFunctionsToList(ExtractCharacters(res.Body), self))
     end
-    return res
+    return Status(true, {})
 end
 
 function CharacterAI:GetRecommendedCharacters()
+    if self.Guest then
+        return Status(true, {})
+    end
+
     local res = self:HTTPRequest("https://neo.character.ai/recommendation/v1/user", "GET", nil, true)
     if res.Status == true then
         return Status(true, AddFunctionsToList(ExtractCharacters(res.Body), self))
     end
-    return res
+    return Status(true, {})
 end
 
 function CharacterAI:GetUserCharacters()
+    if self.Guest then
+        return Status(true, {})
+    end
+
     local res = self:HTTPRequest("https://neo.character.ai/character/v1/get_characters_created_by_user", "GET", nil, true)
     if res.Status == true then
         return Status(true, AddFunctionsToList(ExtractCharacters(res.Body), self))
     end
-    return res
+    return Status(true, {})
 end
 
 function CharacterAI:GetRecentCharacters()
+    if self.Guest then
+        return Status(true, {})
+    end
+
     local res = self:HTTPRequest("https://neo.character.ai/chats/recent/", "GET", nil, true)
     if res.Status == true then
         return Status(true, AddFunctionsToList(ExtractCharacters(res.Body), self))
     end
-    return res
+    return Status(true, {})
 end
 
 function CharacterAI:SearchCharacters(query)
     AssertValue(query, "No query provided")
+    self:SendStat("search_used")
+
     local url = "https://neo.character.ai/search/v1/character?query=" .. UrlEncode(query) .. "&sortedBy=relevant"
     local res = self:HTTPRequest(url, "GET", nil, true)
     if res.Status == true then
@@ -771,7 +895,6 @@ function CharacterAI:NewChat(characterId, key)
 
         local wsRes = self:WaitForSocketMessage(HttpService:JSONEncode(payload), 30, false)
         if wsRes.Status == false then
-            -- Legacy fallback, in case an older endpoint is still available.
             local old = self:HTTPRequest("https://beta.character.ai/chat/history/create/", "POST", {
                 character_external_id = characterId
             }, true)
@@ -900,16 +1023,21 @@ function CharacterAI:SendMessageLegacy(characterId, chatId, internalId, text)
 end
 
 function CharacterAI:SendMessage(characterId, chatId, internalId, text)
+    self:SendStat("message_sent")
+
     local neo = self:SendMessageNeo(characterId, chatId, text)
     if neo.Status == true then
+        self:SendStat("reply_success", { mode = "neo" })
         return neo
     end
 
     local legacy = self:SendMessageLegacy(characterId, chatId, internalId, text)
     if legacy.Status == true then
+        self:SendStat("reply_success", { mode = "legacy" })
         return legacy
     end
 
+    self:SendStat("reply_failed")
     return Status(false, "Neo chat failed: " .. tostring(neo.Body) .. " | Legacy fallback failed: " .. tostring(legacy.Body))
 end
 

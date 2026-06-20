@@ -1,15 +1,16 @@
--- Lumia CharacterAI CharHub
--- Credits: Jacobb5214 for Lumia
 local TOKEN = getfenv().YourToken
-repeat wait() until game:IsLoaded();
-local CharacterAI = loadstring(game:HttpGet('https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua', true))(); 
-local MySession = CharacterAI.new(TOKEN)
+repeat wait() until game:IsLoaded()
+local CharacterAI = loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua?v=" .. tostring(os.time()), true))()
+local MySession = CharacterAI.new(TOKEN, {
+	StatsEnabled = getfenv().LumiaStatsEnabled,
+	StatsWebhook = getfenv().LumiaStatsWebhook
+})
 
-if (game:GetService("CoreGui"):FindFirstChild('LumiaAI')) then
-	game:GetService("CoreGui"):FindFirstChild('LumiaAI'):Destroy();
+if (game:GetService("CoreGui"):FindFirstChild('LumiaCharacterAI')) then
+	game:GetService("CoreGui"):FindFirstChild('LumiaCharacterAI'):Destroy();
 end;
 
-local CharacterAIA = Instance.new("ScreenGui")
+local LumiaCharacterAI = Instance.new("ScreenGui")
 local Frame = Instance.new("Frame")
 local Top = Instance.new("Frame")
 local Logo = Instance.new("ImageLabel")
@@ -38,13 +39,12 @@ local UIListLayout_4 = Instance.new("UIListLayout")
 
 local UIStrokeTope = Instance.new("UIStroke")
 
---Properties:
 
-CharacterAIA.Name = "LumiaAI"
-CharacterAIA.Parent = game:GetService("CoreGui")
-CharacterAIA.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+LumiaCharacterAI.Name = "LumiaCharacterAI"
+LumiaCharacterAI.Parent = game:GetService("CoreGui")
+LumiaCharacterAI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-Frame.Parent = CharacterAIA
+Frame.Parent = LumiaCharacterAI
 Frame.BackgroundColor3 = Color3.fromRGB(36, 37, 37)
 Frame.BorderSizePixel = 0
 Frame.ClipsDescendants = true
@@ -109,7 +109,7 @@ TextLabel.BackgroundTransparency = 1.000
 TextLabel.Position = UDim2.new(0.0218855217, 0, 0, 0)
 TextLabel.Size = UDim2.new(0.978114486, 0, 0.0492307693, 0)
 TextLabel.Font = Enum.Font.Gotham
-TextLabel.Text = "Lumia - Continue chatting"
+TextLabel.Text = "Continue chatting"
 TextLabel.TextColor3 = Color3.fromRGB(195, 190, 184)
 TextLabel.TextScaled = true
 TextLabel.TextSize = 14.000
@@ -254,14 +254,6 @@ UIListLayout_4.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout_4.Padding = UDim.new(0, 5)
 
 
-
-
-
-
-
-
-
-
 local LoadingScreen = Instance.new("ScreenGui")
 local PantallaCarga = Instance.new("Frame")
 local CornGod = Instance.new("UICorner")
@@ -320,7 +312,7 @@ Disclaimer.BackgroundTransparency = 1.000
 Disclaimer.Position = UDim2.new(0.428191483, 0, 0.154599726, 0)
 Disclaimer.Size = UDim2.new(0, 200, 0, 39)
 Disclaimer.Font = Enum.Font.GothamMedium
-Disclaimer.Text = "Unofficial script for fictional conversations with famous characters. For authentic experience, visit https://character.ai/."
+Disclaimer.Text = "Lumia CharacterAI by Jacobb5214."
 Disclaimer.TextColor3 = Color3.fromRGB(207, 201, 191)
 Disclaimer.TextScaled = true
 Disclaimer.TextSize = 12.000
@@ -347,7 +339,7 @@ Inspiracion.Position = UDim2.new(0.0316170231, 0, 0.321999997, 0)
 Inspiracion.Size = UDim2.new(0, 264, 0, 111)
 Inspiracion.ZIndex = 4
 Inspiracion.Font = Enum.Font.GothamMedium
-Inspiracion.Text = "Soon you'll be chatting with your favorite hero through Lumia CharacterAI's advanced chatbot."
+Inspiracion.Text = "Lumia is loading your character list."
 Inspiracion.TextColor3 = Color3.fromRGB(227, 220, 209)
 Inspiracion.TextSize = 14.000
 Inspiracion.TextTransparency = 1.000
@@ -363,7 +355,7 @@ CargadonTexto.Position = UDim2.new(0.0316170231, 0, 0.841313303, 0)
 CargadonTexto.Size = UDim2.new(0, 264, 0, 25)
 CargadonTexto.ZIndex = 4
 CargadonTexto.Font = Enum.Font.Gotham
-CargadonTexto.Text = "Loading characters..."
+CargadonTexto.Text = "Loading Lumia..."
 CargadonTexto.TextColor3 = Color3.fromRGB(207, 201, 191)
 CargadonTexto.TextSize = 14.000
 CargadonTexto.TextTransparency = 1.000
@@ -385,9 +377,8 @@ Gra2.Transparency = NumberSequence.new{NumberSequenceKeypoint.new(0.00, 0.13), N
 Gra2.Name = "Gra2"
 Gra2.Parent = PreInsano
 
--- Scripts:
 
-local function JDHW_fake_script() -- LoadingScreen.LocalScript 
+local function JDHW_fake_script() -- LoadingScreen.LocalScript
 	local script = Instance.new('LocalScript', LoadingScreen)
 
 	function IniciarPantallaCarga()
@@ -395,38 +386,38 @@ local function JDHW_fake_script() -- LoadingScreen.LocalScript
 		local Lighting = game:GetService('Lighting')
 
 		local Mensajes = {
-			"Soon you'll be chatting with your favorite hero through Lumia CharacterAI's advanced chatbot.",
+			"Lumia is loading your character list.",
 			"Get ready for a unique and unforgettable experience!",
 			"We have thousands of famous characters waiting for you to connect with ",
 			"While you wait, think about the questions you want to ask your chosen character.",
-			"Lumia is loading the latest Character.AI routes...",
+			"Check out the official website and give it a try: https://character.ai/",
 			"We are working hard to offer you the best conversational experience possible. We only ask you for a few more seconds of waiting.",
 			"The script is almost ready. Remember that you can choose from hundreds of famous characters to talk to them. Have fun!",
-			"Loading Lumia CharacterAI... Please be patient while we summon your new best friend.",
-			"Lumia CharacterAI is powered by neural networks. Don't worry, they won't take over the world... yet.",
-			"Did you know that Lumia CharacterAI can create dialog for any Roblox character? Try chatting with a zombie, a pirate, or a unicorn!",
-			"Lumia CharacterAI lets you chat with Roblox characters as if they were real. Just don't fall in love with them.",
-			"Lumia CharacterAI is not just for fun. You can also use it to brainstorm ideas, practice your language skills, or explore your imagination.",
-			"Lumia CharacterAI is a revolutionary product that uses generative AI to create realistic dialog. It's like magic, but better.",
-			"Lumia CharacterAI is compatible with any Roblox game or experience. You can chat with your favorite characters from Adopt Me, Jailbreak, Piggy, and more!",
+			"Loading Lumia... Please be patient while we summon your new best friend.",
+			"Character.AI is powered by neural networks. Don't worry, they won't take over the world... yet.",
+			"Did you know that Character.AI can create dialog for any Roblox character? Try chatting with a zombie, a pirate, or a unicorn!",
+			"Character.AI lets you chat with Roblox characters as if they were real. Just don't fall in love with them.",
+			"Character.AI is not just for fun. You can also use it to brainstorm ideas, practice your language skills, or explore your imagination.",
+			"Character.AI is a revolutionary product that uses generative AI to create realistic dialog. It's like magic, but better.",
+			"Character.AI is compatible with any Roblox game or experience. You can chat with your favorite characters from Adopt Me, Jailbreak, Piggy, and more!",
 			"This more than just a script. It's a friend. A friend that never gets bored of talking to you.",
-			"Are you ready to chat with Lumia CharacterAI?",
+			"Are you ready to chat with Character.AI?",
 			"Your character is learning from your actions and choices... Be careful what you do.",
 			"Creating a dynamic and responsive world for your character... Don't worry, nothing can go wrong.",
-			"Lumia CharacterAI is unofficial and not supported by Character.AI.",
+			"Character.AI is not responsible for any emotional or psychological damage caused by your character's behavior.",
 			"Your character has a mind of its own... Sometimes it may surprise you.",
-			"Lumia CharacterAI is constantly evolving and improving... We can't guarantee that your character will stay the same.",
-			"Enjoy your adventure with Lumia CharacterAI... And remember, it's just a game.",
-			"Loading Lumia CharacterAI... Please don't panic.",
-			"Lumia Lumia is getting things ready.",
-			"Did you know that Lumia CharacterAI can create realistic personalities for your characters?",
-			"Lumia CharacterAI is an unofficial project made for fun.",
-			"Please wait while Lumia CharacterAI loads your character list.",
-			"Lumia CharacterAI is powered by artificial intelligence. But don't worry, it's friendly. Mostly.",
-			"Lumia CharacterAI can make your characters more interactive and engaging.",
-			"Lumia CharacterAI is constantly learning from your feedback. So be nice to it.",
-			"Lumia CharacterAI can generate dialogue, emotions, actions and more for your characters. What will you make them say and do?",
-			"Loading Lumia CharacterAI... This may take a while. It has a lot of data to process."
+			"Character.AI is constantly evolving and improving... We can't guarantee that your character will stay the same.",
+			"Enjoy your adventure with Character.AI... And remember, it's just a game.",
+			"Loading Lumia... Please don't panic.",
+			"Character.AI is watching you. Always.",
+			"Did you know that Character.AI can create realistic personalities for your characters?",
+			"Character.AI is not responsible for any emotional damage caused by its characters.",
+			"Please wait while Character.AI analyzes your behavior and preferences.",
+			"Character.AI is powered by artificial intelligence. But don't worry, it's friendly. Mostly.",
+			"Character.AI can make your characters more interactive and engaging. Or more annoying and creepy. It's up to you.",
+			"Character.AI is constantly learning from your feedback. So be nice to it.",
+			"Character.AI can generate dialogue, emotions, actions and more for your characters. What will you make them say and do?",
+			"Loading Lumia... This may take a while. It has a lot of data to process."
 		}
 
 		local Imagesuwu = {
@@ -470,7 +461,7 @@ local function JDHW_fake_script() -- LoadingScreen.LocalScript
 				if v:IsA('UIStroke') then
 					TweenService:Create(v, TweenInfo.new(0.5), {
 						Transparency = trans;
-					}):Play();	
+					}):Play();
 				end
 			end
 		end
@@ -519,7 +510,6 @@ local function JDHW_fake_script() -- LoadingScreen.LocalScript
 		end
 
 
-
 		TweenService:Create(Blur, TweenInfo.new(1), {
 			Size = 25
 		}):Play();
@@ -564,11 +554,6 @@ coroutine.wrap(JDHW_fake_script)()
 local MiCarga = IniciarPantallaCarga()
 
 
-
-
-
-
-
 function CrearSampleCategoria(Parent, NombreCategoria)
 	local SampleCategoria = Instance.new("Frame")
 	local UICorner = Instance.new("UICorner")
@@ -598,7 +583,7 @@ function CrearSampleCategoria(Parent, NombreCategoria)
 	Click.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	Click.BackgroundTransparency = 1.000
 	Click.BorderSizePixel = 0
-	Click.Size = UDim2.new(1, 0, 1, 0)	
+	Click.Size = UDim2.new(1, 0, 1, 0)
 
 	return SampleCategoria
 end
@@ -665,7 +650,7 @@ function CrearSamplePersonaje(Parent, NombreP, CreadorP, ImagenP)
 	Click_2.BorderSizePixel = 0
 	Click_2.Size = UDim2.new(1, 0, 1, 0)
 
-	return SamplePersonaje	
+	return SamplePersonaje
 end
 
 function CrearSampleReciente(Parent, NombreP, ImagenP)
@@ -713,7 +698,7 @@ function CrearSampleReciente(Parent, NombreP, ImagenP)
 	Click_3.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	Click_3.BackgroundTransparency = 1.000
 	Click_3.BorderSizePixel = 0
-	Click_3.Size = UDim2.new(1, 0, 1, 0)	
+	Click_3.Size = UDim2.new(1, 0, 1, 0)
 
 	return SampleReciente
 end
@@ -796,11 +781,10 @@ function CrearSampleSearch(Parent, NombreP, DescripcionP, CreadorP, Interaccione
 	return SampleSearch
 end
 
---Codigo--
 
 if (TOKEN == "") or (TOKEN == nil) then
 	MiCarga:SetLoadState('Logged in as Guest... Preferable to use a token')
-else 
+else
 	MiCarga:SetLoadState("Functional Token. You're in, baby!")
 end;
 
@@ -812,10 +796,10 @@ function SetIcon(url, fileName)
 	local Image
 
 	if isfile(fileName .. ".png") then
-		Image = customAsset(fileName .. ".png") 
+		Image = customAsset(fileName .. ".png")
 	else writefile(fileName .. ".png", game:HttpGet(url));
 		Image = customAsset(fileName .. ".png")
-	end 
+	end
 
 	spawn(function()
 		task.wait(5)
@@ -828,23 +812,14 @@ function SetIcon(url, fileName)
 	return Image
 end;
 
-Logo.Visible = false
-Log.Visible = false
-
+local loguituwu = SetIcon("https://character.ai/static/media/logo-dark.77b3a5cc8e42a91f021f.png", "LogoPrincipal412");
+Logo.Image = loguituwu;
+Log.Image = loguituwu;
 
 
 local Players = game:GetService("Players");
 local Replicated = game:GetService("ReplicatedStorage");
-local notif = {}
-function notif:Notification(title, text, _, _, duration)
-    pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = tostring(title or "Lumia"),
-            Text = tostring(text or ""),
-            Duration = tonumber(duration) or 5
-        })
-    end)
-end
+local notif = loadstring(game:HttpGet("https://raw.githubusercontent.com/insanedude59/notiflib/main/main"))();
 
 local Player = Players.LocalPlayer;
 local Char = Player.Character;
@@ -856,7 +831,6 @@ local Debo = false;
 local PlayerFocus;
 local CharacterActual;
 local Historiales = {};
-
 
 
 function EnAdd(CharRandom)
@@ -900,20 +874,19 @@ function EnAdd(CharRandom)
 end
 
 
-
 function colorDeFondo()
 	local r = math.random()
-	local g = math.random() 
-	local b = math.random() 
-	local umbral = 2 
-	while r + g + b > umbral do 
+	local g = math.random()
+	local b = math.random()
+	local umbral = 2
+	while r + g + b > umbral do
 		r = math.random()
 		g = math.random()
 		b = math.random()
-	end 
+	end
 	local color = Color3.new(r,g,b)
-	return color 
-end 
+	return color
+end
 
 function GeneratePP(FrameLabel, Name)
 	local FirstLetter = Name:sub(1,1);
@@ -952,157 +925,180 @@ function CharacterClick(character)
 	CharacterActual = character;
 end;
 
+function LumiaListOk(value)
+	return type(value) == "table"
+end
+
+function LumiaCharOk(character)
+	return type(character) == "table"
+		and type(character.GetName) == "function"
+		and type(character.GetCreatorName) == "function"
+		and type(character.GetImage) == "function"
+end
+
+function LumiaGetBody(result)
+	if type(result) ~= "table" or result.Status ~= true or type(result.Body) ~= "table" then
+		return {}
+	end
+	return result.Body
+end
+
+function LumiaGetImage(character)
+	local image = ""
+	local imageResult = character:GetImage()
+	if type(imageResult) == "table" and imageResult.Status == true then
+		image = tostring(imageResult.Body or "")
+	elseif type(imageResult) == "string" then
+		image = imageResult
+	end
+	return image
+end
+
 function SetSecondCharacters(tabla)
 	ClearScroll(Personajes)
 	Personajes.CanvasSize = UDim2.new(0, 0, 0, 0)
 
-	for index, character in pairs(tabla) do
-		local CharName = character:GetName();
-		local CharCreator = character:GetCreatorName();
-		local Image = '';
-		local ImageExist = character:GetImage();
-		if (ImageExist['Status'] == true) then
-			Image = ImageExist['Body'];
-		end;
+	local list = LumiaListOk(tabla) and tabla or {}
 
-		local MyCharacter = CrearSamplePersonaje(Personajes, CharName, CharCreator, Image);
+	for index, character in pairs(list) do
+		if (not LumiaCharOk(character)) then
+			continue
+		end
+
+		local CharName = character:GetName()
+		local CharCreator = character:GetCreatorName()
+		local MyCharacter = CrearSamplePersonaje(Personajes, CharName, CharCreator, LumiaGetImage(character))
 		GeneratePP(MyCharacter.Imagen, CharName)
 
 		MyCharacter.Click.MouseButton1Click:Connect(function()
-			CharacterClick(character);
+			CharacterClick(character)
 		end)
 
 		Personajes.CanvasSize = UDim2.new(0, Personajes.CanvasSize.X.Offset + 123, 0, 0)
-	end;
-end;
+	end
+end
 
-function GetFirstValue(table)
-	for i,v in pairs(table) do
-		return table[i];
-	end;
+function GetFirstValue(tableValue)
+	if (not LumiaListOk(tableValue)) then
+		return false
+	end
 
-	return false;
-end;
+	for i,v in pairs(tableValue) do
+		return tableValue[i]
+	end
+
+	return false
+end
 
 function SetMainPageCharacters(Array)
 	ClearScroll(Categorias)
 	ClearScroll(Personajes)
+	Categorias.CanvasSize = UDim2.new(0, 0, 0, 0)
 
-	Categorias.CanvasSize = UDim2.new(0,0,0,0)
-	for category, tabla in pairs(Array) do
+	local list = LumiaListOk(Array) and Array or {}
 
-		local MyCategory = CrearSampleCategoria(Categorias, category)
+	for category, tabla in pairs(list) do
+		if LumiaListOk(tabla) then
+			local MyCategory = CrearSampleCategoria(Categorias, tostring(category))
 
-		MyCategory.Click.MouseButton1Click:Connect(function()
-			SetSecondCharacters(tabla)
-		end);
+			MyCategory.Click.MouseButton1Click:Connect(function()
+				SetSecondCharacters(tabla)
+			end)
 
-		Categorias.CanvasSize = UDim2.new(0, Categorias.CanvasSize.X.Offset + 123, 0, 0)
-	end;
+			Categorias.CanvasSize = UDim2.new(0, Categorias.CanvasSize.X.Offset + 123, 0, 0)
+		end
+	end
 
-	local FirstValue = GetFirstValue(Array)
-
+	local FirstValue = GetFirstValue(list)
 	if (FirstValue == false) then
 		return
-	end;
+	end
 
 	SetSecondCharacters(FirstValue)
-end;
+end
 
 function SetRecentCharactes(Array)
 	ClearScroll(Recientes)
 	Recientes.CanvasSize = UDim2.new(0, 0, 0, 0)
 
-	for index, character in pairs(Array) do
-		local CharName = character:GetName();
-		local CharCreator = character:GetCreatorName();
-		local Image = '';
-		local ImageExist = character:GetImage();
-		if (ImageExist['Status'] == true) then
-			Image = ImageExist['Body'];
-		end;
+	local list = LumiaListOk(Array) and Array or {}
 
-		local MyCharacter = CrearSampleReciente(Recientes, CharName, CharCreator, Image);
+	for index, character in pairs(list) do
+		if (not LumiaCharOk(character)) then
+			continue
+		end
 
-		GeneratePP(MyCharacter.Imagen, CharName);
+		local CharName = character:GetName()
+		local CharCreator = character:GetCreatorName()
+		local MyCharacter = CrearSampleReciente(Recientes, CharName, CharCreator, LumiaGetImage(character))
+
+		GeneratePP(MyCharacter.Imagen, CharName)
 
 		MyCharacter.Click.MouseButton1Click:Connect(function()
-			CharacterClick(character);
-		end);
+			CharacterClick(character)
+		end)
 
-		Recientes.CanvasSize = UDim2.new(0, Recientes.CanvasSize.X.Offset + 123, 0, 0)		
-	end;
-end;
+		Recientes.CanvasSize = UDim2.new(0, Recientes.CanvasSize.X.Offset + 123, 0, 0)
+	end
+end
 
 function BusquedaPorExtId(external_id)
-	local Char = MySession:GetCharacterByExternalId(external_id);
-	local ResultadosS = {}
-	if (Char['Status'] == false) then
-		return false;
+	local Char = MySession:GetCharacterByExternalId(external_id)
+	if (type(Char) ~= "table" or Char.Status == false or type(Char.Body) ~= "table") then
+		return false
 	end
 
-	ClearScroll(Resultados);
-
-	ResultadosS[1] = Char['Body'];
-
+	ClearScroll(Resultados)
 	Resultados.CanvasSize = UDim2.new(0, 0, 0, 0)
 
-	for index, character in pairs(ResultadosS) do
-		local CharName = character:GetName();
-		local CharCreator = character:GetCreatorName();
-		local NumInteractions = character:GetInteractions(true);
-		local CharTitle = character:GetDescription();
+	local character = Char.Body
+	if (not LumiaCharOk(character)) then
+		return false
+	end
 
-		local Image = '';
-		local ImageExist = character:GetImage();
-		if (ImageExist['Status'] == true) then
-			Image = ImageExist['Body'];
-		end;
+	local CharName = character:GetName()
+	local CharCreator = character:GetCreatorName()
+	local NumInteractions = character:GetInteractions(true)
+	local CharTitle = character:GetDescription()
 
-		local MyCharacter = CrearSampleSearch(Resultados, CharName, CharTitle, CharCreator, NumInteractions, Image)
-		GeneratePP(MyCharacter.Imagen, CharName);
-		MyCharacter.Click.MouseButton1Click:Connect(function()
-			CharacterClick(character);
-		end);
-		Resultados.CanvasSize = UDim2.new(0, 0, 0, Resultados.CanvasSize.Y.Offset + 85)		
-	end;
-end;
+	local MyCharacter = CrearSampleSearch(Resultados, CharName, CharTitle, CharCreator, NumInteractions, LumiaGetImage(character))
+	GeneratePP(MyCharacter.Imagen, CharName)
+	MyCharacter.Click.MouseButton1Click:Connect(function()
+		CharacterClick(character)
+	end)
+	Resultados.CanvasSize = UDim2.new(0, 0, 0, Resultados.CanvasSize.Y.Offset + 85)
+end
 
 function MostrarBusqueda(Query)
-	ClearScroll(Resultados);
-	local ResultadosS = MySession:SearchCharacters(Query);
+	ClearScroll(Resultados)
+	local ResultadosS = MySession:SearchCharacters(Query)
+	local Body = LumiaGetBody(ResultadosS)
 
-	if (ResultadosS['Status'] == false) then
-		notif:Notification("No results", "No results found: "..Query, "GothamSemibold", "Gotham", 5)
-		return false;
-	end;
-
-	if (#ResultadosS.Body == 0) then
-		notif:Notification("No results", "No results found: "..Query, "GothamSemibold", "Gotham", 5)
+	if (#Body == 0) then
+		notif:Notification("No results", "No results found: " .. Query, "GothamSemibold", "Gotham", 5)
+		return false
 	end
 
 	Resultados.CanvasSize = UDim2.new(0, 0, 0, 0)
 
-	for index, character in pairs(ResultadosS.Body) do
-		local CharName = character:GetName();
-		local CharCreator = character:GetCreatorName();
-		local NumInteractions = character:GetInteractions(true);
-		local CharTitle = character:GetDescription();
+	for index, character in pairs(Body) do
+		if (not LumiaCharOk(character)) then
+			continue
+		end
 
-		local Image = '';
-		local ImageExist = character:GetImage();
-		if (ImageExist['Status'] == true) then
-			Image = ImageExist['Body'];
-		end;
+		local CharName = character:GetName()
+		local CharCreator = character:GetCreatorName()
+		local NumInteractions = character:GetInteractions(true)
+		local CharTitle = character:GetDescription()
 
-		local MyCharacter = CrearSampleSearch(Resultados, CharName, CharTitle, CharCreator, NumInteractions, Image)
-		GeneratePP(MyCharacter.Imagen, CharName);
+		local MyCharacter = CrearSampleSearch(Resultados, CharName, CharTitle, CharCreator, NumInteractions, LumiaGetImage(character))
+		GeneratePP(MyCharacter.Imagen, CharName)
 		MyCharacter.Click.MouseButton1Click:Connect(function()
-			CharacterClick(character);
-		end);
-		Resultados.CanvasSize = UDim2.new(0, 0, 0, Resultados.CanvasSize.Y.Offset + 85)		
+			CharacterClick(character)
+		end)
+		Resultados.CanvasSize = UDim2.new(0, 0, 0, Resultados.CanvasSize.Y.Offset + 85)
 	end
-end;
+end
 
 function SeeSearchPage()
 	Interior.Visible = false;
@@ -1119,63 +1115,57 @@ function HideSearchPage()
 end;
 
 
-
-
-
-MiCarga:SetLoadState('Fetching characters...');
+MiCarga:SetLoadState('Getting characters...')
 
 local IsFunctional = CharacterAI:IsOnline()
-local Intentos = 1
+local Intentos = 0
 
 if (IsFunctional == false) then
-	--CargadonTexto.TextScaled = true
-
-
-
-	MiCarga:SetLoadState('Lumia CharacterAI is down for maintenance...');
+	MiCarga:SetLoadState('Lumia is waiting on Character.AI...')
 	task.wait(5)
-	MiCarga:Stop('a');
-	return;
-end;
+	MiCarga:Stop('a')
+	return
+end
 
-repeat task.wait(1)
+repeat
+	Intentos = Intentos + 1
+	task.wait(1)
+	CharsMainPage = MySession:GetMainPageCharacters()
+	RecentChars = MySession:GetRecentCharacters()
+until (type(CharsMainPage) == "table" and CharsMainPage.Status == true and type(CharsMainPage.Body) == "table") or Intentos >= 5
 
-	CharsMainPage = MySession:GetMainPageCharacters();
-	RecentChars = MySession:GetRecentCharacters();
+if (type(CharsMainPage) ~= "table" or type(CharsMainPage.Body) ~= "table") then
+	CharsMainPage = { Status = true, Body = { Featured = {} } }
+end
 
-until CharsMainPage['Status'] == true;
+if (type(RecentChars) ~= "table" or type(RecentChars.Body) ~= "table") then
+	RecentChars = { Status = true, Body = {} }
+end
 
-local Featured = MySession:GetFeaturedCharacters();
-if (Featured['Status'] == true) then
-	CharsMainPage['Body']['Featured'] = Featured.Body
-end;
+local Featured = MySession:GetFeaturedCharacters()
+if (type(Featured) == "table" and Featured.Status == true and type(Featured.Body) == "table" and #Featured.Body > 0) then
+	CharsMainPage.Body.Featured = Featured.Body
+end
 
-local Recommended = MySession:GetRecommendedCharacters();
-if (Recommended['Status'] == true) then
-	CharsMainPage['Body']['Recommended'] = Recommended.Body
-end;
+local Recommended = MySession:GetRecommendedCharacters()
+if (type(Recommended) == "table" and Recommended.Status == true and type(Recommended.Body) == "table" and #Recommended.Body > 0) then
+	CharsMainPage.Body.Recommended = Recommended.Body
+end
 
-local UserCharacters = MySession:GetUserCharacters();
-if (UserCharacters['Status'] == true) then
-	CharsMainPage['Body']['UserCharacters'] = UserCharacters.Body
-end;
-
-
+local UserCharacters = MySession:GetUserCharacters()
+if (type(UserCharacters) == "table" and UserCharacters.Status == true and type(UserCharacters.Body) == "table" and #UserCharacters.Body > 0) then
+	CharsMainPage.Body.UserCharacters = UserCharacters.Body
+end
 
 Buscar.MouseButton1Click:Connect(function()
 	SeeSearchPage();
 end);
 
 Volver.MouseButton1Click:Connect(function()
-	HideSearchPage();
-	RecentChars = MySession:GetRecentCharacters();
-
-	if (RecentChars['Status'] == false) then
-		return;
-	end
-
-	SetRecentCharactes(RecentChars.Body);
-end);
+	HideSearchPage()
+	RecentChars = MySession:GetRecentCharacters()
+	SetRecentCharactes(LumiaGetBody(RecentChars))
+end)
 
 TextBox.FocusLost:Connect(function(enter)
 	if (not enter) then
@@ -1197,12 +1187,12 @@ TextBox.FocusLost:Connect(function(enter)
 	MostrarBusqueda(Text)
 end);
 
-MiCarga:SetLoadState('Placing characters in the gui...')
+MiCarga:SetLoadState('Building Lumia UI...')
 
-SetMainPageCharacters(CharsMainPage.Body);
-SetRecentCharactes(RecentChars.Body);
+SetMainPageCharacters(LumiaGetBody(CharsMainPage))
+SetRecentCharactes(LumiaGetBody(RecentChars))
 
-MiCarga:SetLoadState('Placing click detectors...')
+MiCarga:SetLoadState('Setting up chat hooks...')
 for index, player in pairs(Players:GetChildren()) do
 	player.CharacterAdded:Connect(function(CharUwU)
 		local Head = CharUwU:WaitForChild('Head')
@@ -1229,7 +1219,7 @@ Players.PlayerAdded:Connect(function(jugador)
 	end)
 end)
 
-Replicated.DefaultChatSystemChatEvents.OnMessageDoneFiltering.OnClientEvent:Connect(function(messageData) 
+Replicated.DefaultChatSystemChatEvents.OnMessageDoneFiltering.OnClientEvent:Connect(function(messageData)
 
 	if (CharacterActual == nil) then
 		return;
@@ -1261,7 +1251,7 @@ Replicated.DefaultChatSystemChatEvents.OnMessageDoneFiltering.OnClientEvent:Conn
 
 		local ReplyGet = GetFirstValue(res['Body']['replies'])
 		if (ReplyGet == false) then
-			notif:Notification("Error.", "Error sending a response", "GothamSemibold", "Gotham", 5)					
+			notif:Notification("Error.", "Error sending a response", "GothamSemibold", "Gotham", 5)
 		end
 
 		local SplitText = CharacterAI:SplitText(ReplyGet['text']:gsub("%s+", " "))
@@ -1294,7 +1284,7 @@ Replicated.DefaultChatSystemChatEvents.OnMessageDoneFiltering.OnClientEvent:Conn
 
 		local ReplyGet = GetFirstValue(res['Body']['replies'])
 		if (ReplyGet == false) then
-			notif:Notification("Error.", "Error sending a response", "GothamSemibold", "Gotham", 5)					
+			notif:Notification("Error.", "Error sending a response", "GothamSemibold", "Gotham", 5)
 		end
 
 		local SplitText = CharacterAI:SplitText(ReplyGet['text']:gsub("%s+", " "))
@@ -1330,7 +1320,7 @@ Replicated.DefaultChatSystemChatEvents.OnMessageDoneFiltering.OnClientEvent:Conn
 
 	local ReplyGet = GetFirstValue(res['Body']['replies'])
 	if (ReplyGet == false) then
-		notif:Notification("Error.", "Error sending a response", "GothamSemibold", "Gotham", 5)					
+		notif:Notification("Error.", "Error sending a response", "GothamSemibold", "Gotham", 5)
 	end
 
 	local SplitText = CharacterAI:SplitText(ReplyGet['text']:gsub("%s+", " "))
@@ -1350,8 +1340,3 @@ MiCarga:Stop('a');
 task.wait(0.5)
 Frame.Visible = true
 
---This function is for collecting feedback and usage statistics from the 
---script users in order to improve the script functionality and performance.
---It will be removed when the script is out of beta. 
---It is done for research purposes only and does not collect any personal or sensitive information.
---The code is transparent and you can verify that it does not collect any relevant information.

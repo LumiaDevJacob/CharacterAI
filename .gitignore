@@ -1,9 +1,5 @@
 node_modules/
 .env
-.env.*
 __pycache__/
 *.pyc
-*.log
-LumiaCharacterAI/
-CharacterAi/
-*.png
+PrivateConfig.lua
