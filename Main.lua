@@ -1,7 +1,10 @@
-warn("[Lumia] Main hotfix loaded")
-getfenv().YourToken = ""
-getfenv().WaitAnswer = true
-getfenv().LumiaStatsEnabled = true
-getfenv().LumiaStatsWebhook = "PUT_YOUR_DISCORD_WEBHOOK_HERE"
+-- Lumia CharacterAI loader
+-- Keep YourToken blank on public GitHub. Put your real token only in your private copy.
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Examples/CharHub.lua?v=" .. tostring(os.time()), true))()
+getfenv().YourToken = getfenv().YourToken or ""
+getfenv().WaitAnswer = true
+
+warn("[Lumia] Main FULL TextChatService fix loaded")
+
+getfenv().CharacterAI_Module = loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua", true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Examples/CharHub.lua", true))()
