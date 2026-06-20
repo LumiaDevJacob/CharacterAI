@@ -1,10 +1,12 @@
+-- Lumia CharacterAI CharHub
+-- Credits: Jacobb5214 for Lumia
 local TOKEN = getfenv().YourToken
 repeat wait() until game:IsLoaded();
-local CharacterAI = loadstring(game:HttpGet('https://raw.githubusercontent.com/ElWapoteDev/CharacterAI-Luau/main/Module/CharacterAI.lua', true))(); 
+local CharacterAI = loadstring(game:HttpGet('https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua', true))(); 
 local MySession = CharacterAI.new(TOKEN)
 
-if (game:GetService("CoreGui"):FindFirstChild('CharacterAIA')) then
-	game:GetService("CoreGui"):FindFirstChild('CharacterAIA'):Destroy();
+if (game:GetService("CoreGui"):FindFirstChild('LumiaAI')) then
+	game:GetService("CoreGui"):FindFirstChild('LumiaAI'):Destroy();
 end;
 
 local CharacterAIA = Instance.new("ScreenGui")
@@ -38,7 +40,7 @@ local UIStrokeTope = Instance.new("UIStroke")
 
 --Properties:
 
-CharacterAIA.Name = "CharacterAIA"
+CharacterAIA.Name = "LumiaAI"
 CharacterAIA.Parent = game:GetService("CoreGui")
 CharacterAIA.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -107,7 +109,7 @@ TextLabel.BackgroundTransparency = 1.000
 TextLabel.Position = UDim2.new(0.0218855217, 0, 0, 0)
 TextLabel.Size = UDim2.new(0.978114486, 0, 0.0492307693, 0)
 TextLabel.Font = Enum.Font.Gotham
-TextLabel.Text = "Continue chatting"
+TextLabel.Text = "Lumia - Continue chatting"
 TextLabel.TextColor3 = Color3.fromRGB(195, 190, 184)
 TextLabel.TextScaled = true
 TextLabel.TextSize = 14.000
@@ -318,7 +320,7 @@ Disclaimer.BackgroundTransparency = 1.000
 Disclaimer.Position = UDim2.new(0.428191483, 0, 0.154599726, 0)
 Disclaimer.Size = UDim2.new(0, 200, 0, 39)
 Disclaimer.Font = Enum.Font.GothamMedium
-Disclaimer.Text = "Unofficial script for fictional conversations with famous characters. For authentic experience, visit https://beta.character.ai/."
+Disclaimer.Text = "Unofficial script for fictional conversations with famous characters. For authentic experience, visit https://character.ai/."
 Disclaimer.TextColor3 = Color3.fromRGB(207, 201, 191)
 Disclaimer.TextScaled = true
 Disclaimer.TextSize = 12.000
@@ -345,7 +347,7 @@ Inspiracion.Position = UDim2.new(0.0316170231, 0, 0.321999997, 0)
 Inspiracion.Size = UDim2.new(0, 264, 0, 111)
 Inspiracion.ZIndex = 4
 Inspiracion.Font = Enum.Font.GothamMedium
-Inspiracion.Text = "Soon you'll be chatting with your favorite hero through Character.AI's advanced chatbot."
+Inspiracion.Text = "Soon you'll be chatting with your favorite hero through Lumia CharacterAI's advanced chatbot."
 Inspiracion.TextColor3 = Color3.fromRGB(227, 220, 209)
 Inspiracion.TextSize = 14.000
 Inspiracion.TextTransparency = 1.000
@@ -393,38 +395,38 @@ local function JDHW_fake_script() -- LoadingScreen.LocalScript
 		local Lighting = game:GetService('Lighting')
 
 		local Mensajes = {
-			"Soon you'll be chatting with your favorite hero through Character.AI's advanced chatbot.",
+			"Soon you'll be chatting with your favorite hero through Lumia CharacterAI's advanced chatbot.",
 			"Get ready for a unique and unforgettable experience!",
 			"We have thousands of famous characters waiting for you to connect with ",
 			"While you wait, think about the questions you want to ask your chosen character.",
-			"Check out the official website and give it a try: https://beta.character.ai/",
+			"Lumia is loading the latest Character.AI routes...",
 			"We are working hard to offer you the best conversational experience possible. We only ask you for a few more seconds of waiting.",
 			"The script is almost ready. Remember that you can choose from hundreds of famous characters to talk to them. Have fun!",
-			"Loading Character.AI... Please be patient while we summon your new best friend.",
-			"Character.AI is powered by neural networks. Don't worry, they won't take over the world... yet.",
-			"Did you know that Character.AI can create dialog for any Roblox character? Try chatting with a zombie, a pirate, or a unicorn!",
-			"Character.AI lets you chat with Roblox characters as if they were real. Just don't fall in love with them.",
-			"Character.AI is not just for fun. You can also use it to brainstorm ideas, practice your language skills, or explore your imagination.",
-			"Character.AI is a revolutionary product that uses generative AI to create realistic dialog. It's like magic, but better.",
-			"Character.AI is compatible with any Roblox game or experience. You can chat with your favorite characters from Adopt Me, Jailbreak, Piggy, and more!",
+			"Loading Lumia CharacterAI... Please be patient while we summon your new best friend.",
+			"Lumia CharacterAI is powered by neural networks. Don't worry, they won't take over the world... yet.",
+			"Did you know that Lumia CharacterAI can create dialog for any Roblox character? Try chatting with a zombie, a pirate, or a unicorn!",
+			"Lumia CharacterAI lets you chat with Roblox characters as if they were real. Just don't fall in love with them.",
+			"Lumia CharacterAI is not just for fun. You can also use it to brainstorm ideas, practice your language skills, or explore your imagination.",
+			"Lumia CharacterAI is a revolutionary product that uses generative AI to create realistic dialog. It's like magic, but better.",
+			"Lumia CharacterAI is compatible with any Roblox game or experience. You can chat with your favorite characters from Adopt Me, Jailbreak, Piggy, and more!",
 			"This more than just a script. It's a friend. A friend that never gets bored of talking to you.",
-			"Are you ready to chat with Character.AI?",
+			"Are you ready to chat with Lumia CharacterAI?",
 			"Your character is learning from your actions and choices... Be careful what you do.",
 			"Creating a dynamic and responsive world for your character... Don't worry, nothing can go wrong.",
-			"Character.AI is not responsible for any emotional or psychological damage caused by your character's behavior.",
+			"Lumia CharacterAI is unofficial and not supported by Character.AI.",
 			"Your character has a mind of its own... Sometimes it may surprise you.",
-			"Character.AI is constantly evolving and improving... We can't guarantee that your character will stay the same.",
-			"Enjoy your adventure with Character.AI... And remember, it's just a game.",
-			"Loading Character.AI... Please don't panic.",
-			"Character.AI is watching you. Always.",
-			"Did you know that Character.AI can create realistic personalities for your characters?",
-			"Character.AI is not responsible for any emotional damage caused by its characters.",
-			"Please wait while Character.AI analyzes your behavior and preferences.",
-			"Character.AI is powered by artificial intelligence. But don't worry, it's friendly. Mostly.",
-			"Character.AI can make your characters more interactive and engaging. Or more annoying and creepy. It's up to you.",
-			"Character.AI is constantly learning from your feedback. So be nice to it.",
-			"Character.AI can generate dialogue, emotions, actions and more for your characters. What will you make them say and do?",
-			"Loading Character.AI... This may take a while. It has a lot of data to process."
+			"Lumia CharacterAI is constantly evolving and improving... We can't guarantee that your character will stay the same.",
+			"Enjoy your adventure with Lumia CharacterAI... And remember, it's just a game.",
+			"Loading Lumia CharacterAI... Please don't panic.",
+			"Lumia Lumia is getting things ready.",
+			"Did you know that Lumia CharacterAI can create realistic personalities for your characters?",
+			"Lumia CharacterAI is an unofficial project made for fun.",
+			"Please wait while Lumia CharacterAI loads your character list.",
+			"Lumia CharacterAI is powered by artificial intelligence. But don't worry, it's friendly. Mostly.",
+			"Lumia CharacterAI can make your characters more interactive and engaging.",
+			"Lumia CharacterAI is constantly learning from your feedback. So be nice to it.",
+			"Lumia CharacterAI can generate dialogue, emotions, actions and more for your characters. What will you make them say and do?",
+			"Loading Lumia CharacterAI... This may take a while. It has a lot of data to process."
 		}
 
 		local Imagesuwu = {
@@ -826,15 +828,23 @@ function SetIcon(url, fileName)
 	return Image
 end;
 
-local loguituwu = SetIcon("https://beta.character.ai/static/media/logo-dark.77b3a5cc8e42a91f021f.png", "LogoPrincipal412");
-Logo.Image = loguituwu;
-Log.Image = loguituwu;
+Logo.Visible = false
+Log.Visible = false
 
 
 
 local Players = game:GetService("Players");
 local Replicated = game:GetService("ReplicatedStorage");
-local notif = loadstring(game:HttpGet("https://raw.githubusercontent.com/insanedude59/notiflib/main/main"))();
+local notif = {}
+function notif:Notification(title, text, _, _, duration)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = tostring(title or "Lumia"),
+            Text = tostring(text or ""),
+            Duration = tonumber(duration) or 5
+        })
+    end)
+end
 
 local Player = Players.LocalPlayer;
 local Char = Player.Character;
@@ -1122,7 +1132,7 @@ if (IsFunctional == false) then
 
 
 
-	MiCarga:SetLoadState('Character.AI is down for maintenance...');
+	MiCarga:SetLoadState('Lumia CharacterAI is down for maintenance...');
 	task.wait(5)
 	MiCarga:Stop('a');
 	return;

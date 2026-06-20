@@ -1,83 +1,88 @@
-**[Go to Complete Documentation 📚](https://github.com/ElWapoteDev/CharacterAI-Luau/blob/main/docs/index.md)**
+# Lumia CharacterAI
 
-## Getting Started!
+Credits: **Jacobb5214 for Lumia**
 
-This section will help you get started with CharacterAI-Luau, a library that allows you to interact with the Character.AI API. The Character.AI API allows you to create conversational chatbots with different personalities based on famous characters or your own creations.
+Lumia CharacterAI is an unofficial Luau wrapper/UI for experimenting with Character.AI-style chat inside Roblox-style Luau environments.
 
-### Introduction
+> Important: Character.AI does **not** provide an official public API. This repo uses unofficial/private web routes, so it can break whenever Character.AI changes their site or backend.
 
-CharacterAI-Luau is a library written in Lua that provides an easy way to use the Character.AI API in your Roblox games or scripts. With CharacterAI-Luau, you can create immersive and engaging chatbots that can respond to user input, generate images, play games and more. You can choose from a variety of characters available on Character.AI or create your own custom characters.
+## Files
 
-### Requirements
-
-To use CharacterAI-Luau, you need:
-
-- Luau experience and knowledge
-- Obtain a token from the Character.AI website. While this step is optional, it is highly recommended in order to avoid any limitations.
-- An internet connection
-
-### How to get my Character.AI Token?
-To obtain your Character.AI token, please follow these steps:
-
-1. Go to the Character.AI website by clicking on this [link](https://beta.character.ai/).
-2. Sign in or create an account if you haven't already.
-3. Once you are logged in, open the Developer Console by right-clicking anywhere on the page and selecting `Inspect` or `Inspect Element`.
-4. In the Developer Console, navigate to the `Application` tab.
-5. In the `Application` tab, click on `Local Storage` in the left-hand menu.
-6. Under `Local Storage`, you will find `https://beta.character.ai/`. Click on it to expand.
-7. Look for the "char_token" key, which should have a JSON value that looks like this: `{"value":"YourTokenHere","ttl":IgnoreThis}`.
-8. Copy the `value` of the `char_token` key, which is your Character.AI token.
-
-Congratulations, you have successfully obtained your Character.AI token!
-
-
-### Installation
-
-To install CharacterAI-Luau, follow these steps:
-
-1. In your script add the following line of code:
-```lua
-local CharacterAI = loadstring(game:HttpGet('https://raw.githubusercontent.com/ElWapoteDev/CharacterAI-Luau/main/Module/CharacterAI.lua', true))();
+```text
+Main.lua                  Loader users run locally
+Examples/CharHub.lua      Lumia chat UI
+Module/CharacterAI.lua    Lumia CharacterAI wrapper
+README.md                 Setup + notes
+docs/index.md             Method docs
 ```
 
-### Configuration
-
-To configure CharacterAI-Luau, you need to create a new CharacterAI object using local myCharacter = CharacterAI.new(myToken), where myToken is your authentication token from Character.AI website or app. Your authentication token should be a string of random numbers and letters, like this: `14x9f411581z7vF1aRx9Aaf6d70x141jhf0S82cb5` (Example token).
-
-If you don't have a token, you can pass an empty string or nil to access as a guest, but with limitations.
-
-### Basic usage
-
-To use CharacterAI-Luau, you need to select a character to chat with using one of the methods such as `GetCategories()`, `GetMainPageCharacters()`, `SearchCharacters()` etc. Each method returns a table of characters that have fields such as id, name, description, image_url etc.
-
-You can then interact with the character using methods such as `SendMessage()`, which sends a message to the character and returns their response; `GetName()`, which returns the name of the character; `GetImage()`, which returns the image url of the character etc.
-
-For example:
+## Loader
 
 ```lua
--- Load the CharacterAI module from a URL
-local CharacterAI = loadstring(game:HttpGet('https://raw.githubusercontent.com/ElWapoteDev/CharacterAI-Luau/main/Module/CharacterAI.lua', true))();
+getfenv().YourToken = "" -- keep blank on GitHub
+getfenv().WaitAnswer = true
 
--- Create a new session with CharacterAI as a guest, u can put ur token
-local MySession = CharacterAI.new()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Examples/CharHub.lua", true))()
+```
 
--- Get the first character from the main page animals category (Twilight Sparkle)
-local myCharacter = MySession:GetMainPageCharacters().Body.Animals[1]
+## Token safety
 
--- Send a message to Twilight Sparkle with the key "MyKey"
--- The key is a string that identifies the chat session with Twilight Sparkle
--- We use “MyKey” as our key for this chat session
--- We can use different keys for different chat sessions
-local response = myCharacter:SendMessage("MyKey", "Hi Twilight Sparkle!!!")
+Do **not** upload your real token to GitHub.
 
--- Check if the message was sent successfully
-if response['Status'] == false then 
-    warn(response.Body) -- If not, print a warning message
+Keep this in public files:
+
+```lua
+getfenv().YourToken = ""
+```
+
+Only paste your own token in your private local copy while testing.
+
+## What was updated
+
+- Rebranded old CharacterAI-Luau wording to Lumia.
+- Updated credits to **Jacobb5214 for Lumia**.
+- Changed raw GitHub links to `LumiaDevJacob/CharacterAI`.
+- Removed webhook/stat tracking from `Module/CharacterAI.lua`.
+- Updated character search/info/recent/recommended routes to newer `neo.character.ai` / `plus.character.ai` routes.
+- Added a WebSocket chat path for newer Character.AI chat replies.
+- Kept a legacy fallback for older environments, but it may not work if Character.AI fully removed old endpoints.
+
+## Requirements
+
+Your running environment needs:
+
+- `request`, `http_request`, or `syn.request` for HTTP requests.
+- `WebSocket.connect`, `syn.websocket.connect`, or `websocket.connect` for live chat replies.
+
+Search and character browsing may work with HTTP only. Sending/receiving chat replies usually needs WebSocket support now.
+
+## Basic usage
+
+```lua
+local CharacterAI = loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua", true))()
+
+local session = CharacterAI.new(getfenv().YourToken)
+local results = session:SearchCharacters("Mario")
+
+if results.Status and results.Body[1] then
+    local character = results.Body[1]
+    local response = character:SendMessage("default", "Hello!")
+
+    if response.Status then
+        print(response.Body.replies[1].text)
+    else
+        warn(response.Body)
+    end
 end
+```
 
--- Print only Twilight Sparkle's reply text
-print(response.Body.replies[1].text)
+## Push update to GitHub
 
--- Print the full table of the response
-CharacterAI:printTable(response.Body)
+After replacing the files, run:
+
+```bat
+cd /d "C:\Users\Jack\Desktop\CharacterAI\CharacterAI"
+git add .
+git commit -m "Update Lumia CharacterAI wrapper"
+git push
 ```
