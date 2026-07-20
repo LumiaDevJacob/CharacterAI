@@ -1,6 +1,6 @@
 -- lumia -- jacobb5214
 -- Unofficial Character.AI client for Roblox executors.
--- Token: copy `char_token` -> value from the c.ai site's localStorage. See docs/api-notes.md.
+-- Token: Network tab -> any plus/neo.character.ai request -> Authorization header. See docs/api-notes.md.
 -- No telemetry, no phone-home, no webhook calls anywhere in this file.
 
 local HttpService = game:GetService("HttpService")

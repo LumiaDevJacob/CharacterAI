@@ -24,9 +24,18 @@ All three require the same bearer token; no per-host auth.
 
 ## Auth
 
-Token lives in the browser's `localStorage` under key `char_token`, value is
-JSON: `{"value":"<token>"}`. Same mechanism as the original module - this
-part hasn't changed. Pull the `value` field.
+**Correction (confirmed by a user testing against a live account):** there is
+no `char_token` key in localStorage anymore. That was this doc's first pass,
+sourced from stale third-party blog posts, and it's wrong - flagging it here
+instead of just silently fixing it so nobody else copies it from an old
+commit. The current site doesn't stash the token client-side under a
+predictable key at all.
+
+The reliable way to get it (per PyCharacterAI, which is actively maintained
+against the real site): open dev tools → Network tab, interact with the site
+(load your profile, send a message, whatever), find any request to
+`plus.character.ai` or `neo.character.ai`, and read the `Authorization`
+header off it - it's `Token <the token>`. Copy everything after `Token `.
 
 Every authenticated request sends:
 
@@ -35,7 +44,7 @@ Authorization: Token <token>
 Content-Type: application/json
 ```
 
-No separate login call - the token from local storage *is* the credential.
+No separate login call - this token *is* the credential, however you get it.
 A second cookie, `web-next-auth`, exists for the web app's session but is
 only needed for the avatar-upload endpoint. Not used here.
 

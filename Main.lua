@@ -13,5 +13,5 @@ getfenv().CharacterAI_Module = loadstring(game:HttpGet(
 getfenv().CharacterAI_Client = getfenv().CharacterAI_Module.new(getfenv().YourToken)
 
 if getfenv().YourToken == "" then
-	warn("[Lumia] no token set - CharacterAI_Client works but chat needs a real char_token")
+	warn("[Lumia] no token set - CharacterAI_Client works but chat needs a real token (see README)")
 end

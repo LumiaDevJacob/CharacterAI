@@ -24,7 +24,9 @@ missing, since nothing useful works without them.
 local client = CharacterAI.new("YOUR_TOKEN")
 ```
 
-`token` is the `char_token` value from c.ai's localStorage (see the README).
+`token` is the value from the `Authorization: Token <...>` header on any
+authenticated request to `plus.character.ai`/`neo.character.ai` - pull it
+from your browser's Network tab (see the README).
 You can pass `nil`/`""` for unauthenticated access, but most endpoints
 (including chat) require a real token.
 
