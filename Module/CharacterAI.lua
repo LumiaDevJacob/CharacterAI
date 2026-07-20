@@ -1,816 +1,522 @@
-warn("[Lumia] Module FULL hotfix loaded")
---Modulo Character.AI
-local Http = game:GetService("HttpService");
-local fetch = (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request) or request;
+-- lumia -- jacobb5214
+-- Unofficial Character.AI client for Roblox executors.
+-- Token: copy `char_token` -> value from the c.ai site's localStorage. See docs/api-notes.md.
+-- No telemetry, no phone-home, no webhook calls anywhere in this file.
+
+local HttpService = game:GetService("HttpService")
+
+local fetch = (syn and syn.request) or http_request or request
+	or (fluxus and fluxus.request) or (http and http.request)
+
+local wsConnect = WebSocket and WebSocket.connect
+
+if not fetch then
+	error("CharacterAI: no http request function found (syn.request / http_request / request)", 0)
+end
+
+if not wsConnect then
+	error("CharacterAI: no WebSocket.connect found - this executor can't run chat", 0)
+end
+
+--============================================================--
+-- small utils
+--============================================================--
+
+local function uuid()
+	return HttpService:GenerateGUID(false):lower()
+end
+
+local function encode(v)
+	return HttpService:JSONEncode(v)
+end
+
+local function decode(s)
+	if type(s) ~= "string" or s == "" then
+		return nil
+	end
+	local ok, v = pcall(HttpService.JSONDecode, HttpService, s)
+	if ok then
+		return v
+	end
+	return nil
+end
+
+--============================================================--
+-- rest layer: retries, backoff, cloudflare/ratelimit detection
+--============================================================--
+
+local BACKOFF = { 0.6, 1.5, 3 }
+local MAX_RETRIES = 3
+
+local function classify(status, body)
+	if status == 401 then
+		return "auth"
+	elseif status == 403 and not decode(body) then
+		-- html instead of json on a 403 = cloudflare's saying hi, not the app
+		return "cloudflare"
+	elseif status == 429 then
+		return "ratelimit"
+	elseif status >= 500 then
+		return "server"
+	elseif status >= 200 and status < 300 then
+		return "ok"
+	end
+	return "error"
+end
+
+local function rest(method, url, headers, body)
+	headers = headers or {}
+	headers["Content-Type"] = headers["Content-Type"] or "application/json"
+	if type(body) == "table" then
+		body = encode(body)
+	end
+
+	local attempt = 0
+	while true do
+		attempt += 1
+		local ok, res = pcall(fetch, {
+			Url = url,
+			Method = method,
+			Headers = headers,
+			Body = body,
+		})
+
+		if not ok then
+			if attempt > MAX_RETRIES then
+				return { Status = false, Body = "request failed: " .. tostring(res) }
+			end
+			task.wait(BACKOFF[math.min(attempt, #BACKOFF)])
+			continue
+		end
+
+		local status = res.StatusCode or res.status_code or 0
+		local raw = res.Body or res.body or ""
+		local kind = classify(status, raw)
+
+		if kind == "ok" then
+			return { Status = true, Body = decode(raw) or raw, StatusCode = status }
+		end
+
+		if (kind == "ratelimit" or kind == "server") and attempt <= MAX_RETRIES then
+			task.wait(BACKOFF[math.min(attempt, #BACKOFF)])
+			continue
+		end
+
+		return { Status = false, Body = decode(raw) or raw, StatusCode = status, Kind = kind }
+	end
+end
+
+--============================================================--
+-- chat turn payload boilerplate
+--============================================================--
+
+-- the site sends all 23 of these, zeroed, on every turn - so do we
+local PREV_ANNOTATIONS = {
+	bad_memory = 0, boring = 0, ends_chat_early = 0, funny = 0, helpful = 0,
+	inaccurate = 0, interesting = 0, long = 0, not_bad_memory = 0, not_boring = 0,
+	not_ends_chat_early = 0, not_funny = 0, not_helpful = 0, not_inaccurate = 0,
+	not_interesting = 0, not_long = 0, not_out_of_character = 0, not_repetitive = 0,
+	not_short = 0, out_of_character = 0, repetitive = 0, short = 0,
+}
+
+--============================================================--
+-- CharacterAI
+--============================================================--
 
 local CharacterAI = {}
-CharacterAI.Version = '1.4'
 CharacterAI.__index = CharacterAI
-CharacterAI.EnabledWebhooks = false
 
-CharacterAI.GlobalSabes = {}
-local TokenGlobal = nil;
+local Character = {}
+Character.__index = Character
 
-function RedondearNumero(numero)
-	local numero_final = ""
-	local numero = tonumber(numero)
-
-	if numero >= 1000000 then
-		numero_final = tostring(math.floor(numero/1000000)).."m"
-	elseif numero >= 1000 then
-		numero_final = tostring(math.floor(numero/1000)).."k"
-	else
-		numero_final = tostring(numero)
-	end
-
-	return numero_final
+function CharacterAI.new(token)
+	return setmetatable({
+		Token = token,
+		AccountId = nil,
+		Ws = nil,
+		WsQueue = {},
+		Sessions = {}, -- Sessions[characterId][key] = { ChatId = ... }
+	}, CharacterAI)
 end
 
-function CleanJSON(Respuesta)
-	local UltimaTabla = Respuesta:match("%b{}")
-	for Tabla in Respuesta:gmatch("%b{}") do
-		UltimaTabla = Tabla
+function CharacterAI:Headers()
+	local h = { ["Content-Type"] = "application/json" }
+	if self.Token and self.Token ~= "" then
+		h["Authorization"] = "Token " .. self.Token
 	end
-	return UltimaTabla;
-end;
-
-function MiAssert(valor, mensaje)
-	if not valor then
-		warn(mensaje..' The script has stopped running. Please check the external console for further details.') ;
-	end;
-
-	assert(valor, mensaje);
-end;
-
-function GenerarStatus(statu: boolean, cuerpo: any)
-	local Estado = {};
-
-	Estado['Status'] = statu;
-	Estado['Body'] = cuerpo;
-
-	return Estado;
-end;
-
-function CharacterAI:printTable(tbl)
-	if type(tbl) ~= "table" then
-		print(tostring(tbl))
-		return
-	end
-
-	local function printTableHelper(t, indent)
-		local indentStr = string.rep(" ", indent)
-		for k, v in pairs(t) do
-			if type(v) == "table" then
-				if type(k) == 'string' then
-					print(indentStr .. '["'.. tostring(k)..'"]' .. " = {")
-				else
-					print(indentStr .. '['.. tostring(k)..']' .. " = {")
-				end
-				printTableHelper(v, indent + 2)
-				print(indentStr .. "},")
-			else
-				if type(k) == 'string' then
-					if type(v) == 'string' then
-						print(indentStr .. '["'.. tostring(k)..'"]' .. " = " .. '"'.. tostring(v) ..'"'.. ",")
-
-					else
-						print(indentStr .. '["'.. tostring(k)..'"]' .. " = " .. tostring(v) .. ",")							
-					end
-
-					continue;
-				end
-
-				if type(v) == 'string' then
-					print(indentStr .. '['.. tostring(k)..']' .. " = " ..'"'.. tostring(v) ..'"'.. ",")
-				else
-					print(indentStr .. '['.. tostring(k)..']' .. " = " .. tostring(v) .. ",")
-				end
-			end
-		end
-	end 
-
-	print('\n\n\n')
-	print("{")
-	printTableHelper(tbl, 2)
-	print("}")
+	return h
 end
 
-function CharacterAI:SplitText(Texto)
-    MiAssert(Texto, 'No text provided')
-    local Dividido = string.split(Texto, " ")
-    local Partes = {}
-    local Contaodor = 1
-    Partes[Contaodor] = {}
-    
-    for index, texto in pairs(Dividido) do
-        local Tamano = #texto
-        
-        if (not Partes[Contaodor]['Tamano']) then
-            Partes[Contaodor]['Tamano'] = 0
-        end
-        if (not Partes[Contaodor]['Texto']) then
-            Partes[Contaodor]['Texto'] = {}
-        end
-        
-        
-        Partes[Contaodor]['Tamano'] = Partes[Contaodor]['Tamano'] + Tamano
+--------------------------------------------------------------
+-- character discovery
+--------------------------------------------------------------
 
-        table.insert(Partes[Contaodor]['Texto'], texto)
-        
-        if Partes[Contaodor]['Tamano'] > 150 then
-            Contaodor = Contaodor + 1
-            Partes[Contaodor] = {}
-        end
-    end
-    
-    return Partes
-end
+function CharacterAI:SearchCharacters(query)
+	local input = encode({ ["0"] = { json = { searchQuery = query } } })
+	local url = "https://character.ai/api/trpc/search.search?batch=1&input=" .. HttpService:UrlEncode(input)
 
-
-function CharacterAI:GetHeaders(IncluyeToken: boolean)
-	local Encabezados = {
-		['content-type'] = 'application/json',
-		['accept'] = 'application/json, text/plain, */*',
-	}
-
-
-	if (IncluyeToken == true and TokenGlobal ~= nil) then
-		Encabezados['authorization'] = 'Token '..TokenGlobal
+	local res = rest("GET", url, self:Headers())
+	if not res.Status then
+		return res
 	end
 
-	return Encabezados
-end
-
-function CharacterAI:HTTPRequest(url: string, metodo: string, cuerpo: any, OnlyBody: boolean)
-	local NoBody = { 'GET', 'HEAD', 'DELETE', 'OPTIONS', 'TRACE' };
-	MiAssert(url, 'No url provided');
-	MiAssert(metodo, 'No method provided');
-	MiAssert(fetch ~= nil, 'Your client does not provide request/syn.request/http.request, so HTTP cannot run.');
-
-	if (table.find(NoBody, metodo) == nil) and (cuerpo == nil) then
-		MiAssert(false, 'No body provided');
-	end
-
-	local Opciones = {
-		Url = url,
-		Method = metodo,
-		Headers = CharacterAI:GetHeaders(true)
-	};
-
-	if (cuerpo) then
-		Opciones['Body'] = Http:JSONEncode(cuerpo);
-	end;
-
-	local ok, res = pcall(function()
-		return fetch(Opciones);
-	end);
-
-	if not ok then
-		return GenerarStatus(false, 'Request failed: '..tostring(res));
-	end
-
-	if type(res) ~= "table" then
-		return GenerarStatus(false, 'Request returned '..type(res)..': '..tostring(res));
-	end
-
-	local statusCode = tonumber(res.StatusCode or res.status_code or res.Status)
-	local statusMessage = tostring(res.StatusMessage or res.status_message or "")
-	local bodyText = tostring(res.Body or res.body or "")
-
-	if statusCode and statusCode >= 200 and statusCode < 300 then
-		if bodyText == '' then
-			return GenerarStatus(true, res);
-		end
-
-		local cleaned = CleanJSON(bodyText) or bodyText
-		local decodedOk, decoded = pcall(function()
-			return Http:JSONDecode(cleaned)
-		end)
-
-		if decodedOk then
-			return GenerarStatus(true, decoded);
-		end
-
-		-- Some Character.AI streaming responses are newline/SSE-ish. Keep the raw body instead of crashing.
-		return GenerarStatus(true, bodyText);
-	end
-
-	local String = 'Status Code: '..tostring(statusCode)..'\nStatusMessage: '..statusMessage
-	if bodyText ~= '' then
-		String = String..'\nBody: '..bodyText
-	end
-
-	return GenerarStatus(false, String);
-end;
-
-function SesionGuest()
-	local Url = 'https://beta.character.ai/chat/auth/lazy/';
-	local uuid = Http:GenerateGUID();
-
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'POST', {
-		lazy_uuid = uuid
-	}, true)
-
-	if (Respuesta['Status'] == false) then
-		return GenerarStatus(false, 'An error occurred while retrieving GUEST credentials.'.. Respuesta['Body']);
-	end;
-
-	return GenerarStatus(true, Respuesta['Body']['token']);
-end;
-
-function VerifyToken(Token)
-	local Url = 'https://beta.character.ai/chat/characters/recent/'
-
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true)
-	if (Respuesta['Status'] == false) then
-		return GenerarStatus(false, 'Invalid Token')
-	end
-
-	return GenerarStatus(true, 'Welcome to Character.AI')
-end;
-
-function AddFunctionsToCharacter(Char)
-	Char['GetName'] = function()
-		return Char.participant__name
-	end
-
-	Char['GetCreatorName'] = function()
-		return Char.user__username;
-	end;
-
-	function Char:NewChat(Key)
-		MiAssert(Key, 'No key provided')
-		local History = CharacterAI:NewChat(Char.external_id)
-		local RobotExist = false
-
-		if (History['Status'] == false) then
-			return History;
-		end;
-
-		if (not CharacterAI.GlobalSabes[Char.external_id]) then
-			CharacterAI.GlobalSabes[Char.external_id] = {}
-		end
-		CharacterAI.GlobalSabes[Char.external_id][Key] = {}
-		CharacterAI.GlobalSabes[Char.external_id][Key]['history'] = History['Body']['external_id']
-
-		for index, participant in pairs(History['Body']['participants']) do
-			if (participant['is_human']) then
-				continue;
-			end;
-
-			CharacterAI.GlobalSabes[Char.external_id][Key]['internal'] = participant['user']['username'];
-			RobotExist = true;
-		end;
-
-
-		if (RobotExist == false) then
-			return GenerarStatus(false, 'There is no robot in this conversation. It may be an error. Please try reloading the conversation.')
-		end;
-
-		return History;
-	end;
-	
-	function Char:DeleteChat(Key)
-		MiAssert(Key, 'No key provided');
-		if (not CharacterAI.GlobalSabes[Char.external_id]) then
-			return false;
-		end;
-		
-		if (not CharacterAI.GlobalSabes[Char.external_id][Key]) then
-			return false;
-		end;
-		
-		CharacterAI.GlobalSabes[Char.external_id][Key] = nil
-		
-		return true;
-		
-	end;
-
-	function Char:SendMessage(Key, Texto)
-		MiAssert(Key, 'No key provided')
-		if (not CharacterAI.GlobalSabes[Char.external_id]) or (not CharacterAI.GlobalSabes[Char.external_id][Key]) then
-			Char:NewChat(Key);
-			print('Nuevo chat inicializado')
-		end;
-
-		local Response = CharacterAI:SendMessage(Char.external_id, 
-			CharacterAI.GlobalSabes[Char.external_id][Key]['history'],
-			CharacterAI.GlobalSabes[Char.external_id][Key]['internal'],
-			Texto
-		);
-
-		return Response
-		--CharacterAI:printTable(Response)
-	end;
-	
-	function Char:GetInteractions(Round)
-		local Num;
-		
-		if (not Char['participant__num_interactions']) then
-			return 0;
-		end
-		
-		if (Round == true) then
-			return RedondearNumero(Char.participant__num_interactions)
-		end
-		
-		return Char.participant__num_interactions
-        end;
-	
-	function Char:GetDescription()
-		if (Char['title']) and (Char['title'] ~= "") then
-			return Char['title'];
-		end;
-		
-		if (Char['greeting']) and (Char['greeting'] ~= "") then
-			return Char['greeting'];
-		end;
-		
-		if (Char['participant__name']) and (Char['participant__name'] ~= "") then
-			return Char['participant__name'];
-		end;
-		
-		return "";
-	end;
-
-	Char['GetImage'] = function()
-		local FolderPath = "CharacterAi/"
-		local fileName = Char.participant__name..'/'..Char.user__username;
-		local customAsset 
-
-		do
-			customAsset = getsynasset or getcustomasset
-		end
-
-		if isfile(FolderPath .. fileName .. ".png") then
-			return customAsset(FolderPath .. fileName .. ".png");
-		end;
-		
-		
-		local Url = 'https://characterai.io/i/400/static/avatars/'..Char.avatar_file_name
-		local succ, Respuesta = pcall(function()
-			return game:HttpGet(Url)
-		end) 
-
-		if (succ == false) then
-			return GenerarStatus(false, 'Cant get image of this character');
-		end;
-
-
-		if (not isfolder('CharacterAi')) then
-			makefolder('CharacterAi')
-		end
-
-
-		local function SetIcon(url, fileName)
-			fileName = fileName:gsub("%p", "");
-			writefile(FolderPath .. fileName .. ".png", url);
-			local Image = customAsset(FolderPath.. fileName .. ".png")
-			return Image
-		end;
-
-		local Image = SetIcon(Respuesta, fileName)
-
-		return GenerarStatus(true, Image)
-	end
-
-	return Char
-end
-
---This function is for collecting feedback and usage statistics from the 
---script users in order to improve the module functionality and performance.
---You can disable this specifing in the Constructor
---It is done for research purposes only and does not collect any personal or sensitive information.
---The code is transparent and you can verify that it does not collect any relevant information.
-function sendWebhook(mensaje, tipo) 
-	if (CharacterAI.EnabledWebhooks == false) then
-		return;
-        end
-	
-    local Players = game:GetService("Players");
-	local HttpService = game:GetService("HttpService")
-    local requestuwu = (syn and syn.request) or (request);
-    local localPlayer = Players.LocalPlayer
-    local playerName = localPlayer.DisplayName
-    local gameId = game.PlaceId
-    local jobId = game.JobId
-
-    local data = {
-		['serverInfo'] = {
-            ["gameId"] = tostring(gameId),
-            ["jobId"] = tostring(jobId),
-			["TotalPlayers"] = #Players:GetChildren();
-			["playerName"] = playerName,
-		},
-		['message'] = {
-			['Type'] = tipo,
-			['Text'] = mensaje
-		},
-        ["score"] = math.random(1, 100)
-    }
-
-    local jsonData = HttpService:JSONEncode(data)
-    local headers = {
-        ["Content-Type"] = "application/json"
-    }
-
-    local succ, err = pcall(function()
-		local response = requestuwu({
-            Url = 'https://events.hookdeck.com/e/src_igPDmHU8F9jS',
-            Method = "POST",
-            Headers = headers,
-            Body = jsonData
-        })
-
-		return response;
+	local ok, raw = pcall(function()
+		return res.Body[1].result.data.json.characters
 	end)
+	if not ok then
+		return { Status = false, Body = "unexpected search response shape" }
+	end
+
+	local out = {}
+	for _, c in ipairs(raw) do
+		table.insert(out, Character.new(self, c))
+	end
+	return { Status = true, Body = out }
 end
-
-function CharacterAI.new(Token)
-	local self = setmetatable({}, CharacterAI);
-	TokenGlobal = nil;
-	self.Guest = false
-
-	if (Token == "" or Token == nil) then 
-		warn('It is recommended that you provide a TOKEN. Without it, you will access as a GUEST but with limitations.');
-		local Token = SesionGuest();
-		CharacterAI:printTable(Token);
-		MiAssert(Token['Status'] == true, 'An error occurred while authenticating as GUEST.');
-		TokenGlobal = Token['Body'];
-		self.Guest = true
-
-		warn([[
-👋 Hello there!
-📝 This script utilizes the (unofficial) Character.AI API wrapper module.
-🔍 You can obtain this module at: https://github.com/ElWapoteDev/CharacterAI-Luau
-👨‍💻 Created by ElGuapoDeHuapos.
-🔖 Version: ]]..CharacterAI.Version..[[
-👉 This is a brief readme that will be printed in the console.
-	]])
-                sendWebhook('The script loaded without problems. Is_Guest=True', 'Works')
-		return self
-	end;
-	TokenGlobal = Token
-
-	MiAssert(tostring(Token), 'Invalid Token!')
-
-	local TokenJalando = VerifyToken(TokenGlobal)
-
-	MiAssert(TokenJalando['Status'] == true, 'Invalid Token!')
-
-	warn([[
-👋 Hello there!
-
-📝 This script utilizes the (unofficial) Character.AI API wrapper module.
-🔍 You can obtain this module at: https://github.com/ElWapoteDev/CharacterAI-Luau
-👨‍💻 Created by ElGuapoDeHuapos.
-🔖 Version: ]]..CharacterAI.Version..[[
-
-👉 This is a brief readme that will be printed in the console.
-	]])
-	sendWebhook('The script loaded without problems. Is_Guest=False', 'Works')
-	return self;
-end;
-
-function CharacterAI:GetCategories()
-	local Url = 'https://beta.character.ai/chat/character/categories/'
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true)
-
-	return Respuesta
-end
-
-function CharacterAI:UserIsInWaitlist()
-	local Url = 'https://beta.character.ai/chat/config/';
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true);
-
-	if (Respuesta['Status'] == false) then
-		warn(Respuesta['Body']);
-		return true;
-	end;
-
-	return Respuesta['Body']['config']['waitlist']
-end
-
-function CharacterAI:IsOnline()
-    local Url = 'https://beta.character.ai/';
-
-	local succ, Respuesta = pcall(function()
-	    return game:HttpGet(Url);
-	end);
-
-    if (succ == false) then
-		return false;
-	end;
-
-	if Respuesta:find("We're temporarily down for maintenance") and #Respuesta < 2500 then
-		return false;
-	end;
-	
-	return true;
-end;
 
 function CharacterAI:GetMainPageCharacters()
-	local Url = 'https://beta.character.ai/chat/curated_categories/characters/';
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true);
-
-	if (Respuesta['Status'] == false) then
-		sendWebhook('Probably the script is not working', 'Error')
-		return Respuesta;
-	end;
-
-	local CharsByCategory = Respuesta['Body']['characters_by_curated_category']
-
-	for category, array in pairs(CharsByCategory) do
-		for index, character in pairs(array) do
-			local Renewed = AddFunctionsToCharacter(character)
-			CharsByCategory[category][index] = Renewed
-		end
+	local res = rest("GET", "https://plus.character.ai/chat/characters/featured_v2/", self:Headers())
+	if not res.Status then
+		return res
 	end
 
-	return setmetatable({
-		Body = setmetatable(CharsByCategory, {
-			__index = function(tbl, key)
-				warn("Attempt to index non-existent value in CharsByCategory table")
-				return GenerarStatus(false, 'Index out of range')
-			end
-		})
-	}, {
-		__index = function(tbl, key)
-			if key == "Status" then
-				return true
-			end
-		end
-	});
+	local out = {}
+	for _, c in ipairs(res.Body.characters or {}) do
+		table.insert(out, Character.new(self, c))
+	end
+	return { Status = true, Body = out }
 end
 
-function CharacterAI:GetTrendingCharacters()
-	local Url = 'https://beta.character.ai/chat/characters/trending/';
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true);
-
-	if (Respuesta['Status'] == false) then
-		return Respuesta;
-	end;
-
-	local TrendingCharacters = Respuesta['Body']['trending_characters'];
-
-	for index, character in pairs(TrendingCharacters) do
-		local Renewed = AddFunctionsToCharacter(character)
-		TrendingCharacters[index] = Renewed
-	end;
-
-	return setmetatable({
-		Body = setmetatable(TrendingCharacters, {
-			__index = function(tbl, key)
-				warn("Attempt to index non-existent value in TrendingCharacters table")
-				return GenerarStatus(false, 'Index out of range')
-			end
-		})
-	}, {
-		__index = function(tbl, key)
-			if key == "Status" then
-				return true
-			end
-		end
-	});
-end;
-
-function CharacterAI:GetFeaturedCharacters()
-	local Url = 'https://beta.character.ai/chat/characters/featured_v2/';
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true);
-
-	if (Respuesta['Status'] == false) then
-		return Respuesta;
-	end;
-
-	local FeaturedCharacters = Respuesta['Body']['characters'];
-
-	for index, character in pairs(FeaturedCharacters) do
-		local Renewed = AddFunctionsToCharacter(character)
-		FeaturedCharacters[index] = Renewed
-	end;
-
-	return setmetatable({
-		Body = setmetatable(FeaturedCharacters, {
-			__index = function(tbl, key)
-				warn("Attempt to index non-existent value in FeaturedCharacters table")
-				return GenerarStatus(false, 'Index out of range')
-			end
-		})
-	}, {
-		__index = function(tbl, key)
-			if key == "Status" then
-				return true
-			end
-		end
-	});
-end;
-
-function CharacterAI:GetRecommendedCharacters()
-	local Url = 'https://beta.character.ai/chat/characters/recommended/';
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true);
-
-	if (Respuesta['Status'] == false) then
-		return Respuesta;
-	end;
-
-	local RecommendedCharacters = Respuesta['Body']['recommended_characters'];
-
-	for index, character in pairs(RecommendedCharacters) do
-		local Renewed = AddFunctionsToCharacter(character)
-		RecommendedCharacters[index] = Renewed
-	end;
-
-	return setmetatable({
-		Body = setmetatable(RecommendedCharacters, {
-			__index = function(tbl, key)
-				warn("Attempt to index non-existent value in RecommendedCharacters table")
-				return GenerarStatus(false, 'Index out of range')
-			end
-		})
-	}, {
-		__index = function(tbl, key)
-			if key == "Status" then
-				return true
-			end
-		end
-	});
-end;
-
-function CharacterAI:GetUserCharacters()
-	local Url = 'https://beta.character.ai/chat/characters/?scope=user';
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true);
-
-	if (Respuesta['Status'] == false) then
-		return Respuesta;
-	end;
-
-	local UserCharacters = Respuesta['Body']['characters'];
-
-	for index, character in pairs(UserCharacters) do
-		local Renewed = AddFunctionsToCharacter(character)
-		UserCharacters[index] = Renewed
-	end;
-
-	return setmetatable({
-		Body = setmetatable(UserCharacters, {
-			__index = function(tbl, key)
-				warn("Attempt to index non-existent value in UserCharacters table")
-				return GenerarStatus(false, 'Index out of range')
-			end
-		})
-	}, {
-		__index = function(tbl, key)
-			if key == "Status" then
-				return true
-			end
-		end
-	});
-end;
-
-function CharacterAI:GetRecentCharacters()
-	local Url = 'https://beta.character.ai/chat/characters/recent/';
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true);
-
-	if (Respuesta['Status'] == false) then
-		return Respuesta;
-	end;
-
-	local RecentCharacters = Respuesta['Body']['characters'];
-
-	for index, character in pairs(RecentCharacters) do
-		local Renewed = AddFunctionsToCharacter(character)
-		RecentCharacters[index] = Renewed
-	end;
-
-	return setmetatable({
-		Body = setmetatable(RecentCharacters, {
-			__index = function(tbl, key)
-				warn("Attempt to index non-existent value in RecentCharacters table")
-				return GenerarStatus(false, 'Index out of range')
-			end
-		})
-	}, {
-		__index = function(tbl, key)
-			if key == "Status" then
-				return true
-			end
-		end
-	});
-end;
-
-function CharacterAI:SearchCharacters(Query)
-	Query = tostring(Query)
-	if (Query == nil) then 
-		return GenerarStatus(false, 'No query provided')
+function CharacterAI:GetCategories()
+	local res = rest("GET", "https://plus.character.ai/chat/character/categories/", self:Headers())
+	if not res.Status then
+		return res
 	end
-	local Url = 'https://beta.character.ai/chat/characters/search/?query='..Http:UrlEncode(Query);
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true);
-
-	if (Respuesta['Status'] == false) then
-		return Respuesta;
-	end;
-
-	local RecentCharacters = Respuesta['Body']['characters'];
-
-	if (#RecentCharacters == 0) then
-		return GenerarStatus(false, 'No characters found');
-	end;
-
-	for index, character in pairs(RecentCharacters) do
-		local Renewed = AddFunctionsToCharacter(character)
-		RecentCharacters[index] = Renewed
-	end;
-
-	return setmetatable({
-		Body = setmetatable(RecentCharacters, {
-			__index = function(tbl, key)
-				warn("Attempt to index non-existent value in Search table")
-				return GenerarStatus(false, 'Index out of range')
-			end
-		})
-	}, {
-		__index = function(tbl, key)
-			if key == "Status" then
-				return true
-			end
-		end
-	});
-end;
-
-function CharacterAI:GetCharacterByExternalId(external_character_id)
-	MiAssert(external_character_id, 'No external character id provided');
-	local Url = 'https://beta.character.ai/chat/character/info-cached/'..external_character_id..'/';
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true);
-
-	if (Respuesta['Status'] == false) then
-		return Respuesta;
-	end;	
-
-	local Char = Respuesta['Body']['character'];
-	local Renewed = AddFunctionsToCharacter(Char);
-
-	return GenerarStatus(true, Renewed)
-end;
-
-function CharacterAI:GetUserInfo()
-	local Url = 'https://beta.character.ai/chat/user/';
-
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'GET', nil, true);
-
-	if (Respuesta['Status'] == false) then
-		return Respuesta
-	end;
-
-
-
-	return GenerarStatus(true, Respuesta['Body']['user']);
-end;
-
-function CharacterAI:GlobalHistoryReset()
-	CharacterAI.GlobalSabes = {};
-	return true;
-end;
-
-function CharacterAI:NewChat(char_external_id)
-	MiAssert(char_external_id, 'No character_external_id provided.')
-
-	if (not tostring(char_external_id)) then
-		return GenerarStatus(false, 'Invalid external id provided')
-	end;
-
-	local Url = 'https://beta.character.ai/chat/history/create/';
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'POST', {
-		['character_external_id'] = char_external_id
-	}, true);
-
-	return Respuesta;
+	return { Status = true, Body = res.Body.categories or {} }
 end
 
-function CharacterAI:SendMessage(char_external_id, history_external_id, internal_id, Text)
-	MiAssert(char_external_id, 'No char_external_id provided');
-	MiAssert(history_external_id, 'No history_external_id provided');
-	MiAssert(internal_id, 'No internal_id provided');
-	MiAssert(Text, 'No Text provided');
-
-	local Url = 'https://beta.character.ai/chat/streaming/'
-	local Respuesta = CharacterAI:HTTPRequest(Url, 'POST', {
-		history_external_id = history_external_id,
-		character_external_id = char_external_id,
-		text = Text,
-		tgt = internal_id,
-		chunks_to_pad = 8,
-		stream_every_n_steps = 16,
-		ranking_method = "random",
-		is_proactive = false,
-		faux_chat = false,
-		enable_tti = true,
-		staging = false
-	}, true);
-	
-	if (Respuesta['Status'] == false) then
-	    sendWebhook(Http:JSONEncode(Respuesta), 'Generated Message Error')
+function CharacterAI:GetCharacterInfo(characterId)
+	local res = rest("POST", "https://neo.character.ai/character/v1/get_character_info", self:Headers(), {
+		external_id = characterId,
+	})
+	if not res.Status then
+		return res
 	end
-	return Respuesta
-end;
+	if res.Body.status == "NOT_OK" then
+		return { Status = false, Body = res.Body.error or "character not found" }
+	end
+	return { Status = true, Body = Character.new(self, res.Body.character) }
+end
 
+--------------------------------------------------------------
+-- account id (needed to stamp our own turns on the socket)
+--------------------------------------------------------------
+
+function CharacterAI:_EnsureAccountId()
+	if self.AccountId then
+		return { Status = true, Body = self.AccountId }
+	end
+
+	local res = rest("GET", "https://plus.character.ai/chat/user/", self:Headers())
+	if not res.Status then
+		return res
+	end
+
+	local ok, id = pcall(function()
+		return res.Body.user.user.id
+	end)
+	if not ok or not id then
+		return { Status = false, Body = "couldn't read account id from /chat/user/ response" }
+	end
+
+	self.AccountId = tostring(id)
+	return { Status = true, Body = self.AccountId }
+end
+
+--------------------------------------------------------------
+-- websocket: connect once, pump frames into a queue, match by
+-- request_id or a caller-supplied predicate
+--------------------------------------------------------------
+
+function CharacterAI:_EnsureWs()
+	if self.Ws then
+		return { Status = true }
+	end
+
+	-- UNC's WebSocket.connect only guarantees a url arg, so this second table is a
+	-- polite suggestion some executors take and others just ignore. jacobb5214 was here.
+	local ok, ws = pcall(wsConnect, "wss://neo.character.ai/ws/", {
+		Headers = { Cookie = "HTTP_AUTHORIZATION=Token " .. tostring(self.Token) },
+	})
+	if not ok or not ws then
+		ok, ws = pcall(wsConnect, "wss://neo.character.ai/ws/")
+	end
+	if not ok or not ws then
+		return { Status = false, Body = "couldn't open chat websocket", Kind = "auth" }
+	end
+
+	self.Ws = ws
+	self.WsQueue = {}
+
+	ws.OnMessage:Connect(function(msg)
+		local frame = decode(msg)
+		if frame then
+			table.insert(self.WsQueue, frame)
+		end
+	end)
+
+	ws.OnClose:Connect(function()
+		self.Ws = nil
+	end)
+
+	return { Status = true }
+end
+
+function CharacterAI:_WsSend(msg)
+	local ready = self:_EnsureWs()
+	if not ready.Status then
+		return ready
+	end
+
+	local ok, err = pcall(function()
+		self.Ws:Send(encode(msg))
+	end)
+	if not ok then
+		self.Ws = nil
+		return { Status = false, Body = "websocket send failed: " .. tostring(err) }
+	end
+	return { Status = true }
+end
+
+-- pulls frames off the queue until `match(frame)` is true or we time out
+function CharacterAI:_WaitFrame(match, timeoutSec)
+	local deadline = os.clock() + (timeoutSec or 25)
+
+	while os.clock() < deadline do
+		for i, frame in ipairs(self.WsQueue) do
+			if match(frame) then
+				table.remove(self.WsQueue, i)
+				return frame
+			end
+		end
+		task.wait(0.05)
+	end
+
+	return nil
+end
+
+--------------------------------------------------------------
+-- chat: create a chat, send a turn, wait for the final candidate
+--------------------------------------------------------------
+
+function CharacterAI:_NewChat(characterId)
+	local acc = self:_EnsureAccountId()
+	if not acc.Status then
+		return acc
+	end
+
+	local requestId, chatId = uuid(), uuid()
+
+	local sent = self:_WsSend({
+		command = "create_chat",
+		request_id = requestId,
+		payload = {
+			chat = {
+				chat_id = chatId,
+				creator_id = acc.Body,
+				visibility = "VISIBILITY_PRIVATE",
+				character_id = characterId,
+				type = "TYPE_ONE_ON_ONE",
+			},
+			with_greeting = true,
+		},
+	})
+	if not sent.Status then
+		return sent
+	end
+
+	local created = self:_WaitFrame(function(f)
+		return f.request_id == requestId and (f.command == "create_chat_response" or f.command == "neo_error")
+	end)
+	if not created then
+		return { Status = false, Body = "timed out waiting for create_chat_response" }
+	end
+	if created.command == "neo_error" then
+		return { Status = false, Body = created.comment or "chat creation failed" }
+	end
+
+	local greeting = self:_WaitFrame(function(f)
+		return f.request_id == requestId and f.command == "add_turn"
+	end, 15)
+
+	local greetingText = nil
+	if greeting then
+		local candidate = greeting.turn.candidates[1]
+		greetingText = candidate and candidate.raw_content
+	end
+
+	return { Status = true, Body = { ChatId = chatId, Greeting = greetingText } }
+end
+
+function CharacterAI:_SendTurn(characterId, chatId, text)
+	local acc = self:_EnsureAccountId()
+	if not acc.Status then
+		return acc
+	end
+
+	local requestId, turnId, candidateId = uuid(), uuid(), uuid()
+
+	local sent = self:_WsSend({
+		command = "create_and_generate_turn",
+		origin_id = "web-next",
+		request_id = requestId,
+		payload = {
+			character_id = characterId,
+			num_candidates = 1,
+			selected_language = "",
+			tts_enabled = false,
+			user_name = "",
+			previous_annotations = PREV_ANNOTATIONS,
+			turn = {
+				author = { author_id = acc.Body, is_human = true, name = "" },
+				candidates = { { candidate_id = candidateId, raw_content = text } },
+				primary_candidate_id = candidateId,
+				turn_key = { chat_id = chatId, turn_id = turnId },
+			},
+		},
+	})
+	if not sent.Status then
+		return sent
+	end
+
+	local deadline = os.clock() + 30
+	while os.clock() < deadline do
+		local frame = self:_WaitFrame(function(f)
+			return f.request_id == requestId
+		end, deadline - os.clock())
+
+		if not frame then
+			break
+		end
+
+		if frame.command == "neo_error" then
+			return { Status = false, Body = frame.comment or "send failed" }
+		end
+
+		if frame.command == "filter_user_input_self_harm" then
+			return { Status = false, Body = "message blocked by safety filter", Kind = "filtered" }
+		end
+
+		if frame.command == "add_turn" or frame.command == "update_turn" then
+			local turn = frame.turn
+			if not (turn.author and turn.author.is_human) then
+				local candidate = turn.candidates[1]
+				if candidate and candidate.is_final then
+					return {
+						Status = true,
+						Body = {
+							Text = candidate.raw_content,
+							TurnId = turn.turn_key.turn_id,
+							ChatId = chatId,
+						},
+					}
+				end
+			end
+		end
+	end
+
+	return { Status = false, Body = "timed out waiting for a reply" }
+end
+
+--============================================================--
+-- Character - a single result from search/featured/info
+--============================================================--
+
+function Character.new(client, raw)
+	return setmetatable({ _client = client, _raw = raw }, Character)
+end
+
+function Character:GetName()
+	return self._raw.participant__name or self._raw.name or ""
+end
+
+function Character:GetCreatorName()
+	return self._raw.user__username or ""
+end
+
+function Character:GetDescription()
+	local raw = self._raw
+	if raw.title and raw.title ~= "" then
+		return raw.title
+	end
+	if raw.greeting and raw.greeting ~= "" then
+		return raw.greeting
+	end
+	return self:GetName()
+end
+
+function Character:GetId()
+	return self._raw.external_id
+end
+
+function Character:GetImage()
+	local fileName = self._raw.avatar_file_name
+	if not fileName or fileName == "" then
+		return { Status = false, Body = "character has no avatar" }
+	end
+
+	local customAsset = getsynasset or getcustomasset
+	local cachePath = "CharacterAi/" .. fileName:gsub("%p", "") .. ".png"
+
+	if customAsset and isfile and isfile(cachePath) then
+		return { Status = true, Body = customAsset(cachePath) }
+	end
+
+	local ok, imageData = pcall(game.HttpGet, game, "https://characterai.io/i/400/static/avatars/" .. fileName)
+	if not ok then
+		return { Status = false, Body = "couldn't download avatar" }
+	end
+
+	if not customAsset then
+		return { Status = true, Body = "https://characterai.io/i/400/static/avatars/" .. fileName }
+	end
+
+	if isfolder and not isfolder("CharacterAi") then
+		makefolder("CharacterAi")
+	end
+	writefile(cachePath, imageData)
+
+	return { Status = true, Body = customAsset(cachePath) }
+end
+
+-- key: any string you pick to identify this conversation (per-player id, etc).
+-- Reuses the same chat on repeat calls with the same key; starts a new one otherwise.
+function Character:SendMessage(key, text)
+	assert(key, "SendMessage: no session key given")
+	assert(text and text ~= "", "SendMessage: no text given")
+
+	local client, id = self._client, self:GetId()
+	client.Sessions[id] = client.Sessions[id] or {}
+	local session = client.Sessions[id][key]
+
+	if not session then
+		local created = client:_NewChat(id)
+		if not created.Status then
+			return created
+		end
+		session = { ChatId = created.Body.ChatId }
+		client.Sessions[id][key] = session
+	end
+
+	return client:_SendTurn(id, session.ChatId, text)
+end
+
+function Character:ResetChat(key)
+	local id = self:GetId()
+	if self._client.Sessions[id] then
+		self._client.Sessions[id][key] = nil
+	end
+end
+
+-- that's the whole thing. lumia.
 return CharacterAI
