@@ -1,10 +1,17 @@
--- Lumia CharacterAI loader
--- Keep YourToken blank on public GitHub. Put your real token only in your private copy.
+-- lumia -- jacobb5214
+-- Loader. Keep YourToken blank on public GitHub - only fill it in your private copy.
 
 getfenv().YourToken = getfenv().YourToken or ""
-getfenv().WaitAnswer = true
 
-warn("[Lumia] Main FULL TextChatService fix loaded")
+warn("[Lumia] CharacterAI loaded - live API rewrite, no dead endpoints")
 
-getfenv().CharacterAI_Module = loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua", true))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Examples/CharHub.lua", true))()
+getfenv().CharacterAI_Module = loadstring(game:HttpGet(
+	"https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua?v=" .. tostring(os.time()),
+	true
+))()
+
+getfenv().CharacterAI_Client = getfenv().CharacterAI_Module.new(getfenv().YourToken)
+
+if getfenv().YourToken == "" then
+	warn("[Lumia] no token set - CharacterAI_Client works but chat needs a real char_token")
+end
