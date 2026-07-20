@@ -227,16 +227,47 @@ implementation doesn't fake that fingerprint, no amount of Luau-side header
 tweaking fixes it - the fix has to happen below the Lua layer, which no
 executor's `WebSocket.connect` exposes control over.
 
-Not yet confirmed whether this holds across other executors - each has its
-own network stack under `WebSocket.connect`, so results may differ. Run
-`Examples/WsDiagnostic.lua` (connects to a public echo server, then to
-`neo.character.ai`, independently of this module) on whatever executor
-you're testing to check before assuming chat is broken there too. If it
-turns out to be blocked everywhere, the only real fix is routing chat
-through a proxy server with a normal TLS fingerprint sitting between the
-executor and c.ai - which is a "game+proxy" architecture, not
-executor-direct, and wasn't built here since executor-only was the explicit
-target at the start of this rewrite.
+**Confirmed broken on a second executor (Potassium) too (2026-07)** - same
+echo-works/neo-doesn't split, different failure text ("timed out" instead of
+"connection failed"), same underlying cause. Two independent executors
+failing identically is enough to stop guessing per-executor and treat this
+as systemic: **no executor's `WebSocket.connect` gets a direct connection to
+`neo.character.ai` past Cloudflare.**
+
+### The fix: `Server/proxy.py`
+
+Since this can't be solved from inside the executor, `Server/proxy.py` runs
+locally and does the TLS impersonation with `curl_cffi` (the same library
+PyCharacterAI uses, `impersonate="chrome124"`) instead of the executor's
+socket stack. It opens a plain, unauthenticated local websocket server on
+`ws://127.0.0.1:8765`; the executor connects to that instead of directly to
+c.ai. The proxy holds the real token and the real upstream connection, and
+just relays JSON frames both directions.
+
+This was verified two ways before shipping, not just reasoned about:
+
+1. **The upstream leg works.** A `curl_cffi` connection to
+   `wss://neo.character.ai/ws/` with a deliberately invalid token got a
+   clean HTTP-level `403` ("Refused WebSockets upgrade") - a real
+   application response, not a dropped connection or a Cloudflare challenge
+   page. A plain `GET` to the same host through the same session returned a
+   normal `404` with the usual Cloudflare Insights beacon in the body,
+   confirming the impersonated TLS handshake is getting through the edge
+   the same way a browser's would. Compare that to the executors, which
+   never got an HTTP response at all - the connection just failed or timed
+   out before anything came back.
+2. **The full relay works end to end.** Ran `proxy.py` for real, connected a
+   plain local websocket client to it, and got back a well-formed
+   `{"command":"neo_error","comment":"..."}` frame reporting the upstream
+   403 - the exact shape `Module/CharacterAI.lua`'s `_WaitFrame` already
+   expects from a real `neo_error`. Only tested with a fake token (no real
+   one was available at verification time), so the *success* path with a
+   valid token is inferred from (1), not independently confirmed - but the
+   plumbing itself is proven, not guessed.
+
+Module side: `client:UseProxy("ws://127.0.0.1:8765")` before sending any
+message. `Main.lua` reads `_G.WsProxyUrl` and calls this automatically if
+set. See `README.md` for the exact run steps.
 
 ## Rate limits / Cloudflare
 

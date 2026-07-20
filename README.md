@@ -43,11 +43,16 @@ print(char:SendMessage("test", "hey there").Body.Text)
   startup. This one doesn't talk to anything except Character.AI.
 - **Real error handling.** Status checks, Cloudflare/rate-limit detection,
   retry with backoff - see [`Module/CharacterAI.lua`](Module/CharacterAI.lua).
-- **Executor-only, on purpose.** No `HttpService`/proxy fallback for
-  in-game use - c.ai isn't reliably reachable from vanilla Roblox anyway, and
-  chat requires a raw websocket, which stock Roblox scripts can't open. This
-  targets executors (Synapse X, Script-Ware, Fluxus, Krnl, Wave, etc.) that
-  implement the UNC `WebSocket.connect` / `request` surface.
+- **Executor-only, no `HttpService` fallback.** c.ai isn't reliably reachable
+  from vanilla Roblox anyway, and chat requires a raw websocket, which stock
+  Roblox scripts can't open. Targets executors (Synapse X, Script-Ware,
+  Fluxus, Krnl, Wave, etc.) implementing the UNC `WebSocket.connect` /
+  `request` surface. **Caveat found after building this:** `neo.character.ai`
+  sits behind Cloudflare's TLS fingerprinting, which blocks direct executor
+  websocket connections outright - confirmed on two different executors, see
+  [docs/api-notes.md](docs/api-notes.md). Search/discovery (plain HTTP) work
+  fine executor-direct; chat needs [`Server/proxy.py`](#chat-not-connecting)
+  running locally.
 
 ## Structure
 
@@ -55,6 +60,7 @@ print(char:SendMessage("test", "hey there").Body.Text)
 Main.lua                 loader - pulls the module, wires up a token, opens ChatUI
 Module/CharacterAI.lua   the whole client - one file, one require
 Examples/                Search.lua, Chat.lua, CategoriesAndAvatar.lua, ChatUI.lua
+Server/proxy.py          local chat proxy - only needed if direct websocket is blocked
 docs/api-notes.md        endpoint-by-endpoint notes from live research
 docs/index.md            method reference
 ```
@@ -80,6 +86,49 @@ There's no localStorage key with it anymore - despite what a lot of old
 guides say. The Network tab is the reliable way.
 
 Don't share this token. It's full access to your account.
+
+## Chat not connecting?
+
+Search and character browsing are plain HTTP and work fine straight from the
+executor. Chat is a websocket to `neo.character.ai`, and that host sits
+behind Cloudflare's TLS fingerprinting - confirmed to block direct executor
+connections outright on two different executors (see
+[docs/api-notes.md](docs/api-notes.md) for how this was diagnosed and
+verified). If you see `couldn't open chat websocket` in the UI, this is why.
+
+The fix is [`Server/proxy.py`](Server/proxy.py): a small local server that
+does the TLS impersonation `curl_cffi` is built for (the same trick
+PyCharacterAI uses) instead of relying on the executor's socket stack. Your
+token stays local, on your machine, in this process.
+
+**Setup (one time):**
+
+```
+pip install curl_cffi websockets
+```
+
+**Run it** (keep this terminal open while you play):
+
+```
+python Server/proxy.py YOUR_TOKEN
+```
+
+**Point the module at it** - set this before loading `Main.lua`:
+
+```lua
+_G.YourToken = "YOUR_TOKEN_HERE"
+_G.WsProxyUrl = "ws://127.0.0.1:8765"
+loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Main.lua"))()
+```
+
+Or, scripting directly instead of through `Main.lua`:
+
+```lua
+local client = CharacterAI.new("YOUR_TOKEN")
+client:UseProxy("ws://127.0.0.1:8765")
+```
+
+Search/browse don't need any of this - only chat and the live relay do.
 
 ## Usage
 
