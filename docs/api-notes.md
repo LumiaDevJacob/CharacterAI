@@ -196,6 +196,15 @@ it and fail loudly, which is what this module does now, or (b) poll a REST
 endpoint instead - but there's no verified non-socket way to send a message
 in the current API, so that's not a real fallback, just a worse client.
 
+**TODO / known gap**: the strict UNC signature is `WebSocket.connect(url)`
+with no way to attach the `HTTP_AUTHORIZATION` cookie the real handshake
+needs. Some executors accept an extra options table
+(`WebSocket.connect(url, {Headers = {...}})`); this module tries that form
+first and falls back to the bare call. On executors that support neither, the
+socket will connect but the server will likely reject or silently ignore
+authenticated commands - not independently confirmed since it depends on the
+specific executor's websocket implementation.
+
 ## Rate limits / Cloudflare
 
 Not independently measured - no live token to test against. From wrapper
