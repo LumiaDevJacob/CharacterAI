@@ -1,12 +1,13 @@
+-- lumia -- jacobb5214
 -- Search for characters and print the top results.
 -- Grab your token from c.ai's localStorage (`char_token` -> value), see docs/api-notes.md.
 
 local CharacterAI = loadstring(game:HttpGet(
-	"https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/Module/CharacterAI.lua"
+	"https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua"
 ))()
 
-local TOKEN = "PUT_YOUR_TOKEN_HERE"
-local client = CharacterAI.new(TOKEN)
+local TOKEN = (getfenv().YourToken and getfenv().YourToken ~= "" and getfenv().YourToken) or "PUT_YOUR_TOKEN_HERE"
+local client = getfenv().CharacterAI_Client or CharacterAI.new(TOKEN)
 
 local res = client:SearchCharacters("assistant")
 if not res.Status then

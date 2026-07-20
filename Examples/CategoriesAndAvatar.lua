@@ -1,11 +1,12 @@
+-- lumia -- jacobb5214
 -- List categories, then fetch and display a character's avatar in a ScreenGui.
 
 local CharacterAI = loadstring(game:HttpGet(
-	"https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/Module/CharacterAI.lua"
+	"https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua"
 ))()
 
-local TOKEN = "PUT_YOUR_TOKEN_HERE"
-local client = CharacterAI.new(TOKEN)
+local TOKEN = (getfenv().YourToken and getfenv().YourToken ~= "" and getfenv().YourToken) or "PUT_YOUR_TOKEN_HERE"
+local client = getfenv().CharacterAI_Client or CharacterAI.new(TOKEN)
 
 local categories = client:GetCategories()
 if categories.Status then
