@@ -5,8 +5,8 @@ local CharacterAI = loadstring(game:HttpGet(
 	"https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua"
 ))()
 
-local TOKEN = (getfenv().YourToken and getfenv().YourToken ~= "" and getfenv().YourToken) or "PUT_YOUR_TOKEN_HERE"
-local client = getfenv().CharacterAI_Client or CharacterAI.new(TOKEN)
+local TOKEN = (_G.YourToken and _G.YourToken ~= "" and _G.YourToken) or "PUT_YOUR_TOKEN_HERE"
+local client = _G.CharacterAI_Client or CharacterAI.new(TOKEN)
 
 local featured = client:GetMainPageCharacters()
 if not featured.Status then
