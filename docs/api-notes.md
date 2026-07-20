@@ -214,6 +214,30 @@ socket will connect but the server will likely reject or silently ignore
 authenticated commands - not independently confirmed since it depends on the
 specific executor's websocket implementation.
 
+**Confirmed broken on Volt (2026-07):** `WebSocket.connect` itself works fine
+- a plain connection to a public echo server succeeds instantly - but a
+connection to `wss://neo.character.ai/ws/` fails outright, with or without
+the headers table, with or without going through this module at all (tested
+directly, see `Examples/WsDiagnostic.lua`). That points to Cloudflare
+rejecting the handshake based on the TLS ClientHello fingerprint rather than
+anything at the HTTP/header level - this is the same reason PyCharacterAI
+depends on `curl_cffi` specifically (to impersonate a real browser's TLS
+fingerprint) instead of a plain HTTP client. If an executor's socket
+implementation doesn't fake that fingerprint, no amount of Luau-side header
+tweaking fixes it - the fix has to happen below the Lua layer, which no
+executor's `WebSocket.connect` exposes control over.
+
+Not yet confirmed whether this holds across other executors - each has its
+own network stack under `WebSocket.connect`, so results may differ. Run
+`Examples/WsDiagnostic.lua` (connects to a public echo server, then to
+`neo.character.ai`, independently of this module) on whatever executor
+you're testing to check before assuming chat is broken there too. If it
+turns out to be blocked everywhere, the only real fix is routing chat
+through a proxy server with a normal TLS fingerprint sitting between the
+executor and c.ai - which is a "game+proxy" architecture, not
+executor-direct, and wasn't built here since executor-only was the explicit
+target at the start of this rewrite.
+
 ## Rate limits / Cloudflare
 
 Not independently measured - no live token to test against. From wrapper
