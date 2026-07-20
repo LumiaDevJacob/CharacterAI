@@ -65,10 +65,15 @@ headers, websocket chat, character wrapper), just not physically split.
 ## Getting a token
 
 1. Open [character.ai](https://character.ai) and log in.
-2. Open dev tools (`F12`) → `Application` → `Local Storage` →
-   `https://character.ai`.
-3. Find the `char_token` key. Its value is JSON: `{"value":"..."}` - copy
-   the `value` string.
+2. Open dev tools (`F12`) → `Network` tab.
+3. Interact with the site (open your profile, send a message, anything) so
+   requests start showing up.
+4. Click any request to `plus.character.ai` or `neo.character.ai`, check its
+   request headers, find `Authorization: Token <token>`, copy the part after
+   `Token `.
+
+There's no localStorage key with it anymore - despite what a lot of old
+guides say. The Network tab is the reliable way.
 
 Don't share this token. It's full access to your account.
 

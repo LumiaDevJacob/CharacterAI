@@ -1,6 +1,6 @@
 -- lumia -- jacobb5214
 -- Search for characters and print the top results.
--- Grab your token from c.ai's localStorage (`char_token` -> value), see docs/api-notes.md.
+-- Grab your token from the Network tab (Authorization header on a plus/neo.character.ai request), see docs/api-notes.md.
 
 local CharacterAI = loadstring(game:HttpGet(
 	"https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua"
