@@ -248,11 +248,16 @@ function CharacterAI:_EnsureWs()
 	local ok, ws = pcall(wsConnect, "wss://neo.character.ai/ws/", {
 		Headers = { Cookie = "HTTP_AUTHORIZATION=Token " .. tostring(self.Token) },
 	})
+	local err1 = (not ok) and ws or nil
+
 	if not ok or not ws then
 		ok, ws = pcall(wsConnect, "wss://neo.character.ai/ws/")
 	end
+	local err2 = (not ok) and ws or nil
+
 	if not ok or not ws then
-		return { Status = false, Body = "couldn't open chat websocket", Kind = "auth" }
+		local why = err2 or err1 or "WebSocket.connect returned nothing"
+		return { Status = false, Body = "couldn't open chat websocket: " .. tostring(why), Kind = "auth" }
 	end
 
 	self.Ws = ws

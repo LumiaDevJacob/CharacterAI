@@ -173,11 +173,25 @@ local chatHeader = new("TextLabel", {
 	TextSize = 14,
 	TextColor3 = TEXT,
 	TextXAlignment = Enum.TextXAlignment.Left,
-	Size = UDim2.new(1, -16, 0, 24),
+	Size = UDim2.new(1, -76, 0, 24),
 	Position = UDim2.fromOffset(8, 0),
 	BackgroundTransparency = 1,
 	Parent = chatPanel,
 })
+
+-- click a nearby player (or leave it off) and their in-game chat gets relayed
+-- to whichever character is selected, replies get typed back into chat
+local liveBtn = new("TextButton", {
+	BorderSizePixel = 0,
+	Text = "live: off",
+	Font = Enum.Font.GothamBold,
+	TextSize = 11,
+	TextColor3 = TEXT,
+	BackgroundColor3 = PANEL,
+	Size = UDim2.new(0, 60, 0, 20),
+	Position = UDim2.new(1, -68, 0, 2),
+	Parent = chatPanel,
+}, { corner(5) })
 
 local log = new("ScrollingFrame", {
 	BorderSizePixel = 0,
@@ -349,5 +363,172 @@ inputBox.FocusLost:Connect(function(enterPressed)
 		doSend()
 	end
 end)
+
+--------------------------------------------------------------
+-- live relay: click a player in the world, their in-game chat
+-- feeds the selected character, replies get typed back automatically.
+-- this is the part the old CharHub.lua actually existed for.
+--------------------------------------------------------------
+
+local TextChatService = game:GetService("TextChatService")
+local LocalPlayer = Players.LocalPlayer
+
+local live = false
+local focusChar -- Model, or nil = anyone within 7 studs of you
+local focusHighlight
+local relaying = false
+
+liveBtn.MouseButton1Click:Connect(function()
+	if not current then
+		status.Text = "pick a character first"
+		return
+	end
+	live = not live
+	liveBtn.Text = "live: " .. (live and "on" or "off")
+	liveBtn.BackgroundColor3 = live and ACCENT or PANEL
+	status.Text = live and ("live: " .. current:GetName()) or ""
+end)
+
+local function setFocus(char)
+	if focusHighlight then
+		focusHighlight:Destroy()
+		focusHighlight = nil
+	end
+
+	if focusChar == char then
+		focusChar = nil
+		return
+	end
+
+	focusChar = char
+	focusHighlight = new("Highlight", {
+		FillColor = ACCENT,
+		FillTransparency = 0.6,
+		DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
+		Parent = char,
+	})
+end
+
+local function hookClicks(plr)
+	if plr == LocalPlayer then
+		return
+	end
+
+	local function onCharacter(char)
+		local root = char:WaitForChild("HumanoidRootPart", 5)
+		if not root then
+			return
+		end
+
+		local click = new("ClickDetector", { MaxActivationDistance = 32, Parent = root })
+		click.MouseClick:Connect(function(clicker)
+			if clicker == LocalPlayer then
+				setFocus(char)
+			end
+		end)
+	end
+
+	if plr.Character then
+		onCharacter(plr.Character)
+	end
+	plr.CharacterAdded:Connect(onCharacter)
+end
+
+for _, plr in ipairs(Players:GetPlayers()) do
+	hookClicks(plr)
+end
+Players.PlayerAdded:Connect(hookClicks)
+
+local function sendChat(text)
+	pcall(function()
+		local channels = TextChatService:FindFirstChild("TextChannels")
+		local channel = channels and channels:FindFirstChild("RBXGeneral")
+		if not channel then
+			local cfg = TextChatService:FindFirstChild("ChatInputBarConfiguration")
+			channel = cfg and cfg.TargetTextChannel
+		end
+		if channel then
+			channel:SendAsync(text)
+		end
+	end)
+end
+
+-- roblox chat has a length cap, so long replies get split on word boundaries
+local function splitForChat(text, limit)
+	limit = limit or 150
+	local chunks, chunk = {}, ""
+	for word in text:gmatch("%S+") do
+		if #chunk > 0 and #chunk + 1 + #word > limit then
+			table.insert(chunks, chunk)
+			chunk = word
+		else
+			chunk = (#chunk == 0) and word or (chunk .. " " .. word)
+		end
+	end
+	if #chunk > 0 then
+		table.insert(chunks, chunk)
+	end
+	return chunks
+end
+
+local function relay(plr, text)
+	if not current or relaying then
+		return
+	end
+	relaying = true
+	status.Text = "relaying " .. plr.Name .. "..."
+
+	task.spawn(function()
+		local reply = current:SendMessage(plr.Name, plr.DisplayName .. ": " .. text)
+		relaying = false
+
+		if not reply.Status then
+			status.Text = "relay error: " .. tostring(reply.Body)
+			return
+		end
+		status.Text = live and ("live: " .. current:GetName()) or ""
+
+		for _, chunk in ipairs(splitForChat(reply.Body.Text)) do
+			sendChat(chunk)
+			task.wait(2)
+		end
+	end)
+end
+
+if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+	TextChatService.MessageReceived:Connect(function(msg)
+		if not live or not current then
+			return
+		end
+
+		local speaker = msg.TextSource and Players:GetPlayerByUserId(msg.TextSource.UserId)
+		if not speaker then
+			return
+		end
+
+		if speaker == LocalPlayer then
+			if msg.Text:sub(1, 1) == "!" then
+				relay(speaker, msg.Text:sub(2))
+			end
+			return
+		end
+
+		if focusChar then
+			if speaker.Character == focusChar then
+				relay(speaker, msg.Text)
+			end
+			return
+		end
+
+		local myChar = LocalPlayer.Character
+		local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+		local otherRoot = speaker.Character and speaker.Character:FindFirstChild("HumanoidRootPart")
+		if myRoot and otherRoot and (otherRoot.Position - myRoot.Position).Magnitude < 7 then
+			relay(speaker, msg.Text)
+		end
+	end)
+else
+	warn("[Lumia] this game uses legacy chat, not TextChatService - live relay won't work")
+end
 
 -- that's the whole thing. lumia.
