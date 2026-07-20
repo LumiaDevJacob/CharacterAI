@@ -10,6 +10,25 @@ against the API c.ai actually runs today - the old module's endpoints
 > everything here is reverse-engineered and can break without notice. See
 > [docs/api-notes.md](docs/api-notes.md) for what's verified vs. TODO.
 
+## Quick start
+
+Grab your token (see [Getting a token](#getting-a-token) below), then paste
+this into your executor:
+
+```lua
+getfenv().YourToken = "YOUR_TOKEN_HERE"
+loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Main.lua"))()
+```
+
+That leaves you with two globals: `CharacterAI_Module` (the raw module) and
+`CharacterAI_Client` (already authenticated). Try it from the console:
+
+```lua
+local char = CharacterAI_Client:SearchCharacters("assistant").Body[1]
+print(char:GetName())
+print(char:SendMessage("test", "hey there").Body.Text)
+```
+
 ## What changed from the original
 
 - **Live endpoints.** Chat now goes over a websocket
