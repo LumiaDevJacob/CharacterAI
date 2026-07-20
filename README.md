@@ -16,15 +16,19 @@ Grab your token (see [Getting a token](#getting-a-token) below), then paste
 this into your executor:
 
 ```lua
-getfenv().YourToken = "YOUR_TOKEN_HERE"
+_G.YourToken = "YOUR_TOKEN_HERE"
 loadstring(game:HttpGet("https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Main.lua"))()
 ```
 
-That leaves you with two globals: `CharacterAI_Module` (the raw module) and
-`CharacterAI_Client` (already authenticated). Try it from the console:
+That opens the chat UI - search a character, click it, type. `Main.lua` also
+sets two globals for scripting instead: `CharacterAI_Module` (the raw
+module) and `CharacterAI_Client` (already authenticated). If you're running
+the UI and a console script separately, use `_G`, not `getfenv()` - `_G` is
+what actually persists across separately-executed scripts on every executor;
+`getfenv()` only scopes to the script that's currently running.
 
 ```lua
-local char = CharacterAI_Client:SearchCharacters("assistant").Body[1]
+local char = _G.CharacterAI_Client:SearchCharacters("assistant").Body[1]
 print(char:GetName())
 print(char:SendMessage("test", "hey there").Body.Text)
 ```
@@ -48,9 +52,9 @@ print(char:SendMessage("test", "hey there").Body.Text)
 ## Structure
 
 ```
-Main.lua                 loader - HttpGets the module + an example, wires up a token
+Main.lua                 loader - pulls the module, wires up a token, opens ChatUI
 Module/CharacterAI.lua   the whole client - one file, one require
-Examples/                Search.lua, Chat.lua, CategoriesAndAvatar.lua
+Examples/                Search.lua, Chat.lua, CategoriesAndAvatar.lua, ChatUI.lua
 docs/api-notes.md        endpoint-by-endpoint notes from live research
 docs/index.md            method reference
 ```
@@ -105,9 +109,9 @@ end
 key to continue a conversation, use a different one to start a fresh chat
 with the same character. See [`Examples/`](Examples) for full scripts.
 
-Or just run [`Main.lua`](Main.lua) - set `YourToken` before loading it and it
-sets up `CharacterAI_Module` / `CharacterAI_Client` globals for you, which
-the example scripts pick up automatically if present.
+Or just run [`Main.lua`](Main.lua) - set `_G.YourToken` before loading it and
+it opens the UI plus sets up `CharacterAI_Module` / `CharacterAI_Client`
+globals, which the example scripts pick up automatically if present.
 
 ## API
 
