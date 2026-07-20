@@ -38,9 +38,11 @@ end
 local gui = new("ScreenGui", { Name = "LumiaCharacterAI", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
 gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
+local SIDEBAR = 210
+
 local root = new("Frame", {
 	BorderSizePixel = 0,
-	Size = UDim2.fromOffset(560, 400),
+	Size = UDim2.fromOffset(640, 430),
 	Position = UDim2.fromScale(0.5, 0.5),
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	BackgroundColor3 = BG,
@@ -122,7 +124,7 @@ local status = new("TextLabel", {
 
 local searchPanel = new("Frame", {
 	BorderSizePixel = 0,
-	Size = UDim2.new(0, 180, 1, -44),
+	Size = UDim2.new(0, SIDEBAR, 1, -44),
 	Position = UDim2.fromOffset(0, 44),
 	BackgroundTransparency = 1,
 	Parent = root,
@@ -152,7 +154,7 @@ local results = new("ScrollingFrame", {
 	CanvasSize = UDim2.fromOffset(0, 0),
 	AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	Parent = searchPanel,
-}, { new("UIListLayout", { Padding = UDim.new(0, 4) }) })
+}, { new("UIListLayout", { Padding = UDim.new(0, 6) }) })
 
 --------------------------------------------------------------
 -- chat panel (right)
@@ -160,8 +162,8 @@ local results = new("ScrollingFrame", {
 
 local chatPanel = new("Frame", {
 	BorderSizePixel = 0,
-	Size = UDim2.new(1, -180, 1, -44),
-	Position = UDim2.fromOffset(180, 44),
+	Size = UDim2.new(1, -SIDEBAR, 1, -44),
+	Position = UDim2.fromOffset(SIDEBAR, 44),
 	BackgroundTransparency = 1,
 	Parent = root,
 })
@@ -269,6 +271,117 @@ local function selectCharacter(char)
 	bubble("chatting with " .. char:GetName() .. " - say something", false)
 end
 
+-- deterministic fallback color so the same character always gets the same
+-- placeholder circle instead of a random flicker every rebuild
+local function charColor(seed)
+	local hash = 0
+	for i = 1, #seed do
+		hash = (hash * 31 + seed:byte(i)) % 360
+	end
+	return Color3.fromHSV(hash / 360, 0.45, 0.55)
+end
+
+local function buildCard(char, parent)
+	local name = char:GetName()
+	local initial = (name ~= "" and name:sub(1, 1):upper()) or "?"
+
+	local card = new("Frame", {
+		BorderSizePixel = 0,
+		BackgroundColor3 = PANEL,
+		Size = UDim2.new(1, 0, 0, 48),
+		Parent = parent,
+	}, { corner(8) })
+
+	local avatar = new("Frame", {
+		BorderSizePixel = 0,
+		BackgroundColor3 = charColor(initial),
+		Size = UDim2.fromOffset(36, 36),
+		Position = UDim2.fromOffset(6, 6),
+		Parent = card,
+	}, {
+		corner(18),
+		new("TextLabel", {
+			BorderSizePixel = 0,
+			Text = initial,
+			Font = Enum.Font.GothamBold,
+			TextSize = 16,
+			TextColor3 = TEXT,
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+		}),
+	})
+
+	local avatarImg = new("ImageLabel", {
+		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
+		Image = "",
+		Size = UDim2.fromScale(1, 1),
+		Parent = avatar,
+	}, { corner(18) })
+
+	task.spawn(function()
+		local ok, img = pcall(function()
+			return char:GetImage()
+		end)
+		if ok and img.Status then
+			avatarImg.Image = img.Body
+		end
+	end)
+
+	new("TextLabel", {
+		BorderSizePixel = 0,
+		Text = name,
+		Font = Enum.Font.GothamBold,
+		TextSize = 13,
+		TextColor3 = TEXT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, -52, 0, 18),
+		Position = UDim2.fromOffset(48, 6),
+		Parent = card,
+	})
+
+	new("TextLabel", {
+		BorderSizePixel = 0,
+		Text = "@" .. char:GetCreatorName(),
+		Font = Enum.Font.Gotham,
+		TextSize = 11,
+		TextColor3 = SUBTEXT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, -52, 0, 14),
+		Position = UDim2.fromOffset(48, 25),
+		Parent = card,
+	})
+
+	local click = new("TextButton", {
+		BorderSizePixel = 0,
+		Text = "",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		Parent = card,
+	})
+	click.MouseButton1Click:Connect(function()
+		selectCharacter(char)
+	end)
+end
+
+local function fillResults(characters)
+	for _, c in ipairs(results:GetChildren()) do
+		if c:IsA("Frame") then
+			c:Destroy()
+		end
+	end
+	for i, char in ipairs(characters) do
+		if i > 20 then
+			break
+		end
+		buildCard(char, results)
+	end
+end
+
 local function doSearch()
 	local query = searchBox.Text
 	if query == "" then
@@ -276,11 +389,6 @@ local function doSearch()
 	end
 
 	status.Text = "searching..."
-	for _, c in ipairs(results:GetChildren()) do
-		if c:IsA("TextButton") then
-			c:Destroy()
-		end
-	end
 
 	task.spawn(function()
 		local res = client:SearchCharacters(query)
@@ -289,34 +397,24 @@ local function doSearch()
 			return
 		end
 		status.Text = ""
-
-		for i, char in ipairs(res.Body) do
-			if i > 15 then
-				break
-			end
-
-			local btn = new("TextButton", {
-				BorderSizePixel = 0,
-				Text = char:GetName(),
-				Font = Enum.Font.Gotham,
-				TextSize = 12,
-				TextColor3 = TEXT,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				BackgroundColor3 = PANEL,
-				Size = UDim2.new(1, 0, 0, 26),
-				Parent = results,
-			}, { corner(6), new("UIPadding", { PaddingLeft = UDim.new(0, 8) }) })
-
-			btn.MouseButton1Click:Connect(function()
-				selectCharacter(char)
-			end)
-		end
+		fillResults(res.Body)
 	end)
 end
 
 searchBox.FocusLost:Connect(function(enterPressed)
 	if enterPressed then
 		doSearch()
+	end
+end)
+
+task.spawn(function()
+	status.Text = "loading characters..."
+	local res = client:GetMainPageCharacters()
+	if res.Status then
+		fillResults(res.Body)
+		status.Text = TOKEN == "PUT_YOUR_TOKEN_HERE" and "no token set - see README" or ""
+	else
+		status.Text = "couldn't load characters: " .. tostring(res.Body)
 	end
 end)
 
