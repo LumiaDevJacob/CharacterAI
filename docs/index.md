@@ -130,3 +130,7 @@ challenge page.
 
 See [api-notes.md](api-notes.md) for the underlying endpoints and exactly
 what's been verified vs. is still a TODO.
+
+---
+
+lumia -- made by jacobb5214

@@ -1,5 +1,7 @@
+-- lumia -- jacobb5214
 -- Unofficial Character.AI client for Roblox executors.
 -- Token: copy `char_token` -> value from the c.ai site's localStorage. See docs/api-notes.md.
+-- No telemetry, no phone-home, no webhook calls anywhere in this file.
 
 local HttpService = game:GetService("HttpService")
 
@@ -50,6 +52,7 @@ local function classify(status, body)
 	if status == 401 then
 		return "auth"
 	elseif status == 403 and not decode(body) then
+		-- html instead of json on a 403 = cloudflare's saying hi, not the app
 		return "cloudflare"
 	elseif status == 429 then
 		return "ratelimit"
@@ -107,6 +110,7 @@ end
 -- chat turn payload boilerplate
 --============================================================--
 
+-- the site sends all 23 of these, zeroed, on every turn - so do we
 local PREV_ANNOTATIONS = {
 	bad_memory = 0, boring = 0, ends_chat_early = 0, funny = 0, helpful = 0,
 	inaccurate = 0, interesting = 0, long = 0, not_bad_memory = 0, not_boring = 0,
@@ -239,6 +243,8 @@ function CharacterAI:_EnsureWs()
 		return { Status = true }
 	end
 
+	-- UNC's WebSocket.connect only guarantees a url arg, so this second table is a
+	-- polite suggestion some executors take and others just ignore. jacobb5214 was here.
 	local ok, ws = pcall(wsConnect, "wss://neo.character.ai/ws/", {
 		Headers = { Cookie = "HTTP_AUTHORIZATION=Token " .. tostring(self.Token) },
 	})
@@ -512,4 +518,5 @@ function Character:ResetChat(key)
 	end
 end
 
+-- that's the whole thing. lumia.
 return CharacterAI

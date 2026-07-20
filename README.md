@@ -1,9 +1,9 @@
-# CharacterAI-Luau
+# Lumia CharacterAI
 
 Unofficial Character.AI client for Roblox executors. Ground-up rewrite of
 [ElWapoteDev/CharacterAI-Luau](https://github.com/ElWapoteDev/CharacterAI-Luau)
 against the API c.ai actually runs today - the old module's endpoints
-(`beta.character.ai/chat/*`) are dead.
+(`beta.character.ai/chat/*`) are dead. Made by jacobb5214, for Lumia.
 
 > [!WARNING]
 > Unofficial. Not affiliated with Character.AI. c.ai has no public API;
@@ -29,6 +29,7 @@ against the API c.ai actually runs today - the old module's endpoints
 ## Structure
 
 ```
+Main.lua                 loader - HttpGets the module + an example, wires up a token
 Module/CharacterAI.lua   the whole client - one file, one require
 Examples/                Search.lua, Chat.lua, CategoriesAndAvatar.lua
 docs/api-notes.md        endpoint-by-endpoint notes from live research
@@ -56,7 +57,7 @@ Don't share this token. It's full access to your account.
 
 ```lua
 local CharacterAI = loadstring(game:HttpGet(
-    "https://raw.githubusercontent.com/<you>/<repo>/main/Module/CharacterAI.lua"
+    "https://raw.githubusercontent.com/LumiaDevJacob/CharacterAI/main/Module/CharacterAI.lua"
 ))()
 
 local client = CharacterAI.new("YOUR_TOKEN")
@@ -79,6 +80,10 @@ end
 `SendMessage`'s first argument is a session key you pick - reuse the same
 key to continue a conversation, use a different one to start a fresh chat
 with the same character. See [`Examples/`](Examples) for full scripts.
+
+Or just run [`Main.lua`](Main.lua) - set `YourToken` before loading it and it
+sets up `CharacterAI_Module` / `CharacterAI_Client` globals for you, which
+the example scripts pick up automatically if present.
 
 ## API
 
@@ -105,6 +110,12 @@ string (or a table with a `Kind` field for `auth` / `cloudflare` /
 Full method-by-method reference: [docs/index.md](docs/index.md).
 Endpoint research and payload shapes: [docs/api-notes.md](docs/api-notes.md).
 
+## Credits
+
+Made by [jacobb5214](https://github.com/LumiaDevJacob) for Lumia. Original
+concept/API shape from [ElWapoteDev/CharacterAI-Luau](https://github.com/ElWapoteDev/CharacterAI-Luau) -
+none of the old code survived, but credit where it's due.
+
 ## License
 
-MIT, same as upstream.
+MIT.

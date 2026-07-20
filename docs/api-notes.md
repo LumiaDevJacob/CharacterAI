@@ -229,3 +229,7 @@ Persona management, character creation/editing, voice, avatar upload
 candidate regeneration. All exist in the live API (see PyCharacterAI's
 `account.py`/`chat.py` for shape) but aren't part of the public surface this
 module commits to. Can be added later without breaking the existing API.
+
+---
+
+lumia -- made by jacobb5214
