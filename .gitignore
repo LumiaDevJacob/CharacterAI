@@ -3,3 +3,6 @@ node_modules/
 __pycache__/
 *.pyc
 PrivateConfig.lua
+*.tmp
+.DS_Store
+.claude/
