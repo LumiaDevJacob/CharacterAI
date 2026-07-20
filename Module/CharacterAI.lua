@@ -135,8 +135,17 @@ function CharacterAI.new(token)
 		AccountId = nil,
 		Ws = nil,
 		WsQueue = {},
+		WsProxyUrl = nil, -- set via :UseProxy() if direct chat gets blocked
 		Sessions = {}, -- Sessions[characterId][key] = { ChatId = ... }
 	}, CharacterAI)
+end
+
+-- neo.character.ai's chat socket sits behind Cloudflare's TLS fingerprinting,
+-- which blocks most executor websocket stacks outright (see docs/api-notes.md).
+-- Point this at a local proxy (Server/proxy.py) that holds the real
+-- connection - the proxy handles auth itself, so no cookie needed here.
+function CharacterAI:UseProxy(url)
+	self.WsProxyUrl = url
 end
 
 function CharacterAI:Headers()
@@ -243,21 +252,42 @@ function CharacterAI:_EnsureWs()
 		return { Status = true }
 	end
 
-	-- UNC's WebSocket.connect only guarantees a url arg, so this second table is a
-	-- polite suggestion some executors take and others just ignore. jacobb5214 was here.
-	local ok, ws = pcall(wsConnect, "wss://neo.character.ai/ws/", {
-		Headers = { Cookie = "HTTP_AUTHORIZATION=Token " .. tostring(self.Token) },
-	})
-	local err1 = (not ok) and ws or nil
+	local ok, ws
 
-	if not ok or not ws then
-		ok, ws = pcall(wsConnect, "wss://neo.character.ai/ws/")
-	end
-	local err2 = (not ok) and ws or nil
+	if self.WsProxyUrl then
+		-- local proxy holds the real token and connection; the loopback hop needs no auth
+		ok, ws = pcall(wsConnect, self.WsProxyUrl)
+		if not ok or not ws then
+			local why = (not ok) and ws or "WebSocket.connect returned nothing"
+			return {
+				Status = false,
+				Body = "couldn't reach the local proxy at " .. self.WsProxyUrl .. ": " .. tostring(why)
+					.. " - is Server/proxy.py running?",
+				Kind = "auth",
+			}
+		end
+	else
+		-- UNC's WebSocket.connect only guarantees a url arg, so this second table is a
+		-- polite suggestion some executors take and others just ignore. jacobb5214 was here.
+		ok, ws = pcall(wsConnect, "wss://neo.character.ai/ws/", {
+			Headers = { Cookie = "HTTP_AUTHORIZATION=Token " .. tostring(self.Token) },
+		})
+		local err1 = (not ok) and ws or nil
 
-	if not ok or not ws then
-		local why = err2 or err1 or "WebSocket.connect returned nothing"
-		return { Status = false, Body = "couldn't open chat websocket: " .. tostring(why), Kind = "auth" }
+		if not ok or not ws then
+			ok, ws = pcall(wsConnect, "wss://neo.character.ai/ws/")
+		end
+		local err2 = (not ok) and ws or nil
+
+		if not ok or not ws then
+			local why = err2 or err1 or "WebSocket.connect returned nothing"
+			return {
+				Status = false,
+				Body = "couldn't open chat websocket: " .. tostring(why)
+					.. " - likely Cloudflare blocking this executor's TLS handshake, see docs/api-notes.md. Try client:UseProxy(url) with Server/proxy.py.",
+				Kind = "auth",
+			}
+		end
 	end
 
 	self.Ws = ws
