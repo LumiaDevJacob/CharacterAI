@@ -11,6 +11,9 @@ local CharacterAI = loadstring(game:HttpGet(
 
 local TOKEN = (_G.YourToken and _G.YourToken ~= "" and _G.YourToken) or "PUT_YOUR_TOKEN_HERE"
 local client = _G.CharacterAI_Client or CharacterAI.new(TOKEN)
+if not _G.CharacterAI_Client and _G.WsProxyUrl and _G.WsProxyUrl ~= "" then
+	client:UseProxy(_G.WsProxyUrl)
+end
 
 local BG, PANEL, ACCENT, TEXT, SUBTEXT =
 	Color3.fromRGB(24, 22, 30), Color3.fromRGB(32, 30, 40),

@@ -6,6 +6,10 @@
 
 _G.YourToken = _G.YourToken or ""
 
+-- set this to "ws://127.0.0.1:8765" (or wherever) if direct chat gets blocked -
+-- run Server/proxy.py first. See docs/api-notes.md for why this exists.
+_G.WsProxyUrl = _G.WsProxyUrl or ""
+
 warn("[Lumia] CharacterAI loading...")
 
 _G.CharacterAI_Module = loadstring(game:HttpGet(
@@ -14,6 +18,11 @@ _G.CharacterAI_Module = loadstring(game:HttpGet(
 ))()
 
 _G.CharacterAI_Client = _G.CharacterAI_Module.new(_G.YourToken)
+
+if _G.WsProxyUrl ~= "" then
+	_G.CharacterAI_Client:UseProxy(_G.WsProxyUrl)
+	warn("[Lumia] chat routed through proxy: " .. _G.WsProxyUrl)
+end
 
 if _G.YourToken == "" then
 	warn("[Lumia] no token set - UI will load but search/chat will fail (see README)")
