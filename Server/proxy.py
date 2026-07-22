@@ -1,5 +1,5 @@
 """
-Lumia CharacterAI - local chat proxy.
+CharacterAI - local chat proxy.
 
 neo.character.ai's chat websocket is behind Cloudflare, and Cloudflare
 fingerprints the TLS handshake itself - a Roblox executor's raw socket

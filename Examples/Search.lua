@@ -1,4 +1,4 @@
--- lumia -- jacobb5214
+-- jacobb5214
 -- Search for characters and print the top results.
 -- Grab your token from the Network tab (Authorization header on a plus/neo.character.ai request), see docs/api-notes.md.
 

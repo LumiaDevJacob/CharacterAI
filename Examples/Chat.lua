@@ -1,4 +1,4 @@
--- lumia -- jacobb5214
+-- jacobb5214
 -- Pick a character off the main page and hold a short conversation with it.
 
 local CharacterAI = loadstring(game:HttpGet(

@@ -1,4 +1,4 @@
--- lumia -- jacobb5214
+-- jacobb5214
 -- Standalone test: does WebSocket.connect work at all on this executor,
 -- and specifically against neo.character.ai? Run this by itself.
 
