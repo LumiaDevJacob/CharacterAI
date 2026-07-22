@@ -1,4 +1,4 @@
--- lumia -- jacobb5214
+-- jacobb5214
 -- Unofficial Character.AI client for Roblox executors.
 -- Token: Network tab -> any plus/neo.character.ai request -> Authorization header. See docs/api-notes.md.
 -- No telemetry, no phone-home, no webhook calls anywhere in this file.
@@ -267,8 +267,8 @@ function CharacterAI:_EnsureWs()
 			}
 		end
 	else
-		-- UNC's WebSocket.connect only guarantees a url arg, so this second table is a
-		-- polite suggestion some executors take and others just ignore. jacobb5214 was here.
+		-- UNC's WebSocket.connect only guarantees a url arg, so this second table is
+		-- a polite suggestion some executors take and others just ignore.
 		ok, ws = pcall(wsConnect, "wss://neo.character.ai/ws/", {
 			Headers = { Cookie = "HTTP_AUTHORIZATION=Token " .. tostring(self.Token) },
 		})
@@ -553,5 +553,4 @@ function Character:ResetChat(key)
 	end
 end
 
--- that's the whole thing. lumia.
 return CharacterAI

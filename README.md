@@ -1,9 +1,9 @@
-# Lumia CharacterAI
+# CharacterAI
 
 Unofficial Character.AI client for Roblox executors. Ground-up rewrite of
 [ElWapoteDev/CharacterAI-Luau](https://github.com/ElWapoteDev/CharacterAI-Luau)
 against the API c.ai actually runs today - the old module's endpoints
-(`beta.character.ai/chat/*`) are dead. Made by jacobb5214, for Lumia.
+(`beta.character.ai/chat/*`) are dead. Made by jacobb5214.
 
 > [!WARNING]
 > Unofficial. Not affiliated with Character.AI. c.ai has no public API;
@@ -189,7 +189,7 @@ Endpoint research and payload shapes: [docs/api-notes.md](docs/api-notes.md).
 
 ## Credits
 
-Made by [jacobb5214](https://github.com/LumiaDevJacob) for Lumia. Original
+Made by [jacobb5214](https://github.com/LumiaDevJacob). Original
 concept/API shape from [ElWapoteDev/CharacterAI-Luau](https://github.com/ElWapoteDev/CharacterAI-Luau) -
 none of the old code survived, but credit where it's due.
 

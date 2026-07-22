@@ -1,4 +1,4 @@
--- lumia -- jacobb5214
+-- jacobb5214
 -- In-game chat window: search a character, click it, talk to it.
 -- Needs _G.CharacterAI_Client (Main.lua sets this) or a token below.
 
@@ -38,7 +38,7 @@ end
 -- shell
 --------------------------------------------------------------
 
-local gui = new("ScreenGui", { Name = "LumiaCharacterAI", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
+local gui = new("ScreenGui", { Name = "CharacterAI", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
 gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local SIDEBAR = 210
@@ -61,7 +61,7 @@ local titleBar = new("Frame", {
 
 new("TextLabel", {
 	BorderSizePixel = 0,
-	Text = "Lumia CharacterAI",
+	Text = "CharacterAI",
 	Font = Enum.Font.GothamBold,
 	TextSize = 15,
 	TextColor3 = TEXT,
@@ -245,7 +245,7 @@ local sendBtn = new("TextButton", {
 --------------------------------------------------------------
 
 local current -- selected Character
-local sessionKey = "lumia-ui-" .. tostring(Players.LocalPlayer.UserId)
+local sessionKey = "chatui-" .. tostring(Players.LocalPlayer.UserId)
 
 local function bubble(text, fromMe)
 	new("TextLabel", {
@@ -629,7 +629,5 @@ if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
 		end
 	end)
 else
-	warn("[Lumia] this game uses legacy chat, not TextChatService - live relay won't work")
+	warn("[CharacterAI] this game uses legacy chat, not TextChatService - live relay won't work")
 end
-
--- that's the whole thing. lumia.

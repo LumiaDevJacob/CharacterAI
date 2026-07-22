@@ -296,4 +296,4 @@ module commits to. Can be added later without breaking the existing API.
 
 ---
 
-lumia -- made by jacobb5214
+made by jacobb5214

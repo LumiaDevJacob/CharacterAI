@@ -1,4 +1,4 @@
--- lumia -- jacobb5214
+-- jacobb5214
 -- List categories, then fetch and display a character's avatar in a ScreenGui.
 
 local CharacterAI = loadstring(game:HttpGet(
